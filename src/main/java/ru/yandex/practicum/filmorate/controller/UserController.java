@@ -2,7 +2,6 @@ package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
@@ -25,6 +24,10 @@ public class UserController {
     @PostMapping
     public User create(@Valid @RequestBody User user) {
         log.info("Запрос на создание пользователя: {}", user);
+        if (user.getLogin() != null && user.getLogin().contains(" ")) {
+            log.warn("Ошибка валидации: логин содержит пробелы: {}", user.getLogin());
+            throw new ValidationException("Логин не может содержать пробелы");
+        }
         if (user.getName() == null || user.getName().isBlank()) {
             log.debug("Имя пользователя пустое, будет использован логин: {}", user.getLogin());
             user.setName(user.getLogin());
@@ -40,7 +43,7 @@ public class UserController {
         log.info("Запрос на обновление пользователя: {}", newUser);
         if (newUser.getId() == null) {
             log.warn("Ошибка: id пользователя не указан");
-            return null;
+            throw new ValidationException("id пользователя не указан");
         }
         if (newUser.getName() == null || newUser.getName().isBlank()) {
             log.debug("Имя пользователя пустое, будет использован логин: {}", newUser.getLogin());
@@ -49,7 +52,7 @@ public class UserController {
         User oldUser = users.get(newUser.getId());
         if (oldUser == null) {
             log.warn("Пользователь с id={} не найден", newUser.getId());
-            return null;
+            throw new ValidationException("Пользователь с id=" + newUser.getId() + " не найден");
         }
         oldUser.setEmail(newUser.getEmail());
         oldUser.setLogin(newUser.getLogin());
@@ -66,15 +69,5 @@ public class UserController {
                 .max()
                 .orElse(0);
         return ++currentMaxId;
-    }
-
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public void handleValidation(MethodArgumentNotValidException e) {
-        String message = e.getBindingResult().getFieldErrors().stream()
-                .findFirst()
-                .map(fe -> fe.getDefaultMessage())
-                .orElse("Ошибка валидации");
-        log.warn("Ошибка валидации: {}", message);
-        throw new ValidationException(message);
     }
 }

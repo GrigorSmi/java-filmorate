@@ -5,9 +5,7 @@ import org.junit.jupiter.api.Test;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -25,7 +23,7 @@ class FilmControllerTest {
         Film film = new Film();
         film.setName("name");
         film.setDescription("a".repeat(200));
-        film.setReleaseDate(Instant.now());
+        film.setReleaseDate(LocalDate.now());
         film.setDuration(100L);
 
         Film result = controller.create(film);
@@ -38,7 +36,7 @@ class FilmControllerTest {
         Film film = new Film();
         film.setName("name");
         film.setDescription(null);
-        film.setReleaseDate(Instant.now());
+        film.setReleaseDate(LocalDate.now());
         film.setDuration(100L);
 
         Film result = controller.create(film);
@@ -51,7 +49,7 @@ class FilmControllerTest {
         Film film = new Film();
         film.setName("name");
         film.setDescription("desc");
-        film.setReleaseDate(LocalDate.of(1895, 12, 27).atStartOfDay(ZoneOffset.UTC).toInstant());
+        film.setReleaseDate(LocalDate.of(1895, 12, 27));
         film.setDuration(100L);
 
         ValidationException e = assertThrows(ValidationException.class, () -> controller.create(film));
@@ -64,7 +62,7 @@ class FilmControllerTest {
         Film film = new Film();
         film.setName("name");
         film.setDescription("desc");
-        film.setReleaseDate(LocalDate.of(1895, 12, 28).atStartOfDay(ZoneOffset.UTC).toInstant());
+        film.setReleaseDate(LocalDate.of(1895, 12, 28));
         film.setDuration(100L);
 
         Film result = controller.create(film);
@@ -77,7 +75,7 @@ class FilmControllerTest {
         Film film = new Film();
         film.setName("name");
         film.setDescription("desc");
-        film.setReleaseDate(Instant.now());
+        film.setReleaseDate(LocalDate.now());
         film.setDuration(0L);
 
         ValidationException e = assertThrows(ValidationException.class, () -> controller.create(film));
@@ -90,7 +88,7 @@ class FilmControllerTest {
         Film film = new Film();
         film.setName("name");
         film.setDescription("desc");
-        film.setReleaseDate(Instant.now());
+        film.setReleaseDate(LocalDate.now());
         film.setDuration(-1L);
 
         ValidationException e = assertThrows(ValidationException.class, () -> controller.create(film));
@@ -103,7 +101,7 @@ class FilmControllerTest {
         Film film = new Film();
         film.setName("valid film");
         film.setDescription("desc");
-        film.setReleaseDate(Instant.now());
+        film.setReleaseDate(LocalDate.now());
         film.setDuration(100L);
 
         Film result = controller.create(film);
@@ -117,13 +115,13 @@ class FilmControllerTest {
         Film first = new Film();
         first.setName("first");
         first.setDescription("desc");
-        first.setReleaseDate(Instant.now());
+        first.setReleaseDate(LocalDate.now());
         first.setDuration(100L);
 
         Film second = new Film();
         second.setName("second");
         second.setDescription("desc");
-        second.setReleaseDate(Instant.now());
+        second.setReleaseDate(LocalDate.now());
         second.setDuration(100L);
 
         Film r1 = controller.create(first);
@@ -133,27 +131,27 @@ class FilmControllerTest {
         assertEquals(2L, r2.getId());
     }
 
-    // обновление фильма без id → возвращается null
+    // обновление фильма без id → ошибка валидации
     @Test
-    void update_shouldReturnNullWhenIdIsNull() {
+    void update_shouldThrowWhenIdIsNull() {
         Film update = new Film();
         update.setId(null);
         update.setName("name");
 
-        assertNull(controller.update(update));
+        assertThrows(ValidationException.class, () -> controller.update(update));
     }
 
-    // обновление несуществующего фильма (id=999) → возвращается null
+    // обновление несуществующего фильма (id=999) → ошибка валидации
     @Test
-    void update_shouldReturnNullWhenFilmNotFound() {
+    void update_shouldThrowWhenFilmNotFound() {
         Film update = new Film();
         update.setId(999L);
         update.setName("name");
         update.setDescription("desc");
-        update.setReleaseDate(Instant.now());
+        update.setReleaseDate(LocalDate.now());
         update.setDuration(100L);
 
-        assertNull(controller.update(update));
+        assertThrows(ValidationException.class, () -> controller.update(update));
     }
 
     // обновление существующего фильма валидными данными → все поля меняются
@@ -162,7 +160,7 @@ class FilmControllerTest {
         Film film = new Film();
         film.setName("original");
         film.setDescription("original desc");
-        film.setReleaseDate(Instant.now());
+        film.setReleaseDate(LocalDate.now());
         film.setDuration(100L);
         Film created = controller.create(film);
 
@@ -170,7 +168,7 @@ class FilmControllerTest {
         update.setId(created.getId());
         update.setName("updated");
         update.setDescription("updated desc");
-        update.setReleaseDate(LocalDate.of(2000, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
+        update.setReleaseDate(LocalDate.of(2000, 1, 1));
         update.setDuration(200L);
 
         Film result = controller.update(update);

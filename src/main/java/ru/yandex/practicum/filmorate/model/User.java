@@ -8,7 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-import java.time.Instant;
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -27,5 +27,5 @@ public class User {
     private String name;
 
     @PastOrPresent(message = "Дата рождения не может быть в будущем")
-    private Instant birthday;
+    private LocalDate birthday;
 }

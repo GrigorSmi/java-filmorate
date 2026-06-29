@@ -2,13 +2,11 @@ package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,7 +26,7 @@ public class FilmController {
     public Film create(@Valid @RequestBody Film film) {
         log.info("Запрос на создание фильма: {}", film);
         if (film.getReleaseDate() != null && film.getReleaseDate()
-                .isBefore(LocalDate.of(1895, 12, 28).atStartOfDay(ZoneOffset.UTC).toInstant())) {
+                .isBefore(LocalDate.of(1895, 12, 28))) {
             log.warn("Ошибка валидации: дата релиза {}, раньше 28.12.1895", film.getReleaseDate());
             throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года");
         }
@@ -47,10 +45,10 @@ public class FilmController {
         log.info("Запрос на обновление фильма: {}", newFilm);
         if (newFilm.getId() == null) {
             log.warn("Ошибка: id фильма не указан");
-            return null;
+            throw new ValidationException("id фильма не указан");
         }
         if (newFilm.getReleaseDate() != null && newFilm.getReleaseDate()
-                .isBefore(LocalDate.of(1895, 12, 28).atStartOfDay(ZoneOffset.UTC).toInstant())) {
+                .isBefore(LocalDate.of(1895, 12, 28))) {
             log.warn("Ошибка валидации: дата релиза {}, раньше 28.12.1895", newFilm.getReleaseDate());
             throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года");
         }
@@ -61,7 +59,7 @@ public class FilmController {
         Film oldFilm = films.get(newFilm.getId());
         if (oldFilm == null) {
             log.warn("Фильм с id={} не найден", newFilm.getId());
-            return null;
+            throw new ValidationException("Фильм с id=" + newFilm.getId() + " не найден");
         }
         oldFilm.setName(newFilm.getName());
         oldFilm.setDescription(newFilm.getDescription());
@@ -78,15 +76,5 @@ public class FilmController {
                 .max()
                 .orElse(0);
         return ++currentMaxId;
-    }
-
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public void handleValidation(MethodArgumentNotValidException e) {
-        String message = e.getBindingResult().getFieldErrors().stream()
-                .findFirst()
-                .map(fe -> fe.getDefaultMessage())
-                .orElse("Ошибка валидации");
-        log.warn("Ошибка валидации: {}", message);
-        throw new ValidationException(message);
     }
 }

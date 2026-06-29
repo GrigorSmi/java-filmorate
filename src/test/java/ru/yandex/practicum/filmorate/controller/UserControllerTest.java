@@ -2,9 +2,10 @@ package ru.yandex.practicum.filmorate.controller;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
-import java.time.Instant;
+import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -23,7 +24,7 @@ class UserControllerTest {
         user.setEmail("user@mail.com");
         user.setLogin("mylogin");
         user.setName(null);
-        user.setBirthday(Instant.now());
+        user.setBirthday(LocalDate.now());
 
         User result = controller.create(user);
         assertEquals("mylogin", result.getName());
@@ -36,7 +37,7 @@ class UserControllerTest {
         user.setEmail("user@mail.com");
         user.setLogin("mylogin");
         user.setName("   ");
-        user.setBirthday(Instant.now());
+        user.setBirthday(LocalDate.now());
 
         User result = controller.create(user);
         assertEquals("mylogin", result.getName());
@@ -49,7 +50,7 @@ class UserControllerTest {
         user.setEmail("user@mail.com");
         user.setLogin("login");
         user.setName("name");
-        user.setBirthday(Instant.now());
+        user.setBirthday(LocalDate.now());
 
         User result = controller.create(user);
         assertNotNull(result.getId());
@@ -62,7 +63,7 @@ class UserControllerTest {
         user.setEmail("user@mail.com");
         user.setLogin("login");
         user.setName("name");
-        user.setBirthday(Instant.parse("2000-01-01T00:00:00Z"));
+        user.setBirthday(LocalDate.of(2000, 1, 1));
 
         User result = controller.create(user);
         assertNotNull(result.getId());
@@ -88,7 +89,7 @@ class UserControllerTest {
         user.setEmail("user@mail.com");
         user.setLogin("login");
         user.setName("display name");
-        user.setBirthday(Instant.parse("1990-06-15T00:00:00Z"));
+        user.setBirthday(LocalDate.of(1990, 6, 15));
 
         User result = controller.create(user);
         assertNotNull(result.getId());
@@ -103,13 +104,13 @@ class UserControllerTest {
         first.setEmail("a@mail.com");
         first.setLogin("a");
         first.setName("A");
-        first.setBirthday(Instant.now());
+        first.setBirthday(LocalDate.now());
 
         User second = new User();
         second.setEmail("b@mail.com");
         second.setLogin("b");
         second.setName("B");
-        second.setBirthday(Instant.now());
+        second.setBirthday(LocalDate.now());
 
         User r1 = controller.create(first);
         User r2 = controller.create(second);
@@ -118,28 +119,28 @@ class UserControllerTest {
         assertEquals(2L, r2.getId());
     }
 
-    // обновление пользователя без id → возвращается null
+    // обновление пользователя без id → ошибка валидации
     @Test
-    void update_shouldReturnNullWhenIdIsNull() {
+    void update_shouldThrowWhenIdIsNull() {
         User update = new User();
         update.setId(null);
         update.setEmail("user@mail.com");
         update.setLogin("login");
 
-        assertNull(controller.update(update));
+        assertThrows(ValidationException.class, () -> controller.update(update));
     }
 
-    // обновление несуществующего пользователя (id=999) → возвращается null
+    // обновление несуществующего пользователя (id=999) → ошибка валидации
     @Test
-    void update_shouldReturnNullWhenUserNotFound() {
+    void update_shouldThrowWhenUserNotFound() {
         User update = new User();
         update.setId(999L);
         update.setEmail("user@mail.com");
         update.setLogin("login");
         update.setName("name");
-        update.setBirthday(Instant.now());
+        update.setBirthday(LocalDate.now());
 
-        assertNull(controller.update(update));
+        assertThrows(ValidationException.class, () -> controller.update(update));
     }
 
     // обновление пользователя с name = "   " → name становится равен login
@@ -149,7 +150,7 @@ class UserControllerTest {
         user.setEmail("user@mail.com");
         user.setLogin("login");
         user.setName("original");
-        user.setBirthday(Instant.now());
+        user.setBirthday(LocalDate.now());
         controller.create(user);
 
         User update = new User();
@@ -157,7 +158,7 @@ class UserControllerTest {
         update.setEmail("user@mail.com");
         update.setLogin("login");
         update.setName("   ");
-        update.setBirthday(Instant.now());
+        update.setBirthday(LocalDate.now());
 
         User result = controller.update(update);
         assertEquals("login", result.getName());
@@ -170,7 +171,7 @@ class UserControllerTest {
         user.setEmail("user@mail.com");
         user.setLogin("login");
         user.setName("original");
-        user.setBirthday(Instant.now());
+        user.setBirthday(LocalDate.now());
         User created = controller.create(user);
 
         User update = new User();
@@ -178,7 +179,7 @@ class UserControllerTest {
         update.setEmail("newemail@mail.com");
         update.setLogin("newlogin");
         update.setName("new name");
-        update.setBirthday(Instant.parse("1990-01-01T00:00:00Z"));
+        update.setBirthday(LocalDate.of(1990, 1, 1));
 
         User result = controller.update(update);
         assertEquals("newemail@mail.com", result.getEmail());

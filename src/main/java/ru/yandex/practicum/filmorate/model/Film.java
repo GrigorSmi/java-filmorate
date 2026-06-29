@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.Instant;
+import java.time.LocalDate;
 
 /**
  * Film.
@@ -21,6 +21,6 @@ public class Film {
     @Size(max = 200, message = "Максимальная длина описания — 200 символов")
     private String description;
 
-    private Instant releaseDate;
+    private LocalDate releaseDate;
     private Long duration;
 }
