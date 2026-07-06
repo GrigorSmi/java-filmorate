@@ -2,22 +2,30 @@ package ru.yandex.practicum.filmorate.controller;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.InMemoryUserStorage;
 
 import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SpringBootTest
 class UserControllerTest {
+    @Autowired
     private UserController controller;
+
+    @Autowired
+    private InMemoryUserStorage userStorage;
 
     @BeforeEach
     void setUp() {
-        controller = new UserController();
+        userStorage.clearAll();
     }
 
-    // создание пользователя с name = null → name становится равен login
     @Test
     void create_shouldUseLoginWhenNameIsNull() {
         User user = new User();
@@ -30,7 +38,6 @@ class UserControllerTest {
         assertEquals("mylogin", result.getName());
     }
 
-    // создание пользователя с name = "   " → name становится равен login
     @Test
     void create_shouldUseLoginWhenNameIsBlank() {
         User user = new User();
@@ -43,7 +50,6 @@ class UserControllerTest {
         assertEquals("mylogin", result.getName());
     }
 
-    // создание пользователя с датой рождения = текущий момент → успех (граничное значение)
     @Test
     void create_shouldSucceedWhenBirthdayIsNow() {
         User user = new User();
@@ -56,7 +62,6 @@ class UserControllerTest {
         assertNotNull(result.getId());
     }
 
-    // создание пользователя с датой рождения в прошлом → успех
     @Test
     void create_shouldSucceedWhenBirthdayIsInPast() {
         User user = new User();
@@ -69,7 +74,6 @@ class UserControllerTest {
         assertNotNull(result.getId());
     }
 
-    // создание пользователя с birthday = null → успех (поле необязательное)
     @Test
     void create_shouldSucceedWhenBirthdayIsNull() {
         User user = new User();
@@ -82,7 +86,6 @@ class UserControllerTest {
         assertNotNull(result.getId());
     }
 
-    // создание полностью валидного пользователя → успех, присваивается id
     @Test
     void create_shouldSucceedWithValidUser() {
         User user = new User();
@@ -97,7 +100,6 @@ class UserControllerTest {
         assertEquals("display name", result.getName());
     }
 
-    // последовательное создание двух пользователей → id увеличиваются: 1, 2
     @Test
     void create_shouldGenerateIncrementingIds() {
         User first = new User();
@@ -119,7 +121,20 @@ class UserControllerTest {
         assertEquals(2L, r2.getId());
     }
 
-    // обновление пользователя без id → ошибка валидации
+    @Test
+    void delete_shouldRemoveUser() {
+        User user = new User();
+        user.setEmail("user@mail.com");
+        user.setLogin("login");
+        user.setName("name");
+        user.setBirthday(LocalDate.now());
+        User created = controller.create(user);
+
+        userStorage.delete(created.getId());
+
+        assertTrue(userStorage.findById(created.getId()).isEmpty());
+    }
+
     @Test
     void update_shouldThrowWhenIdIsNull() {
         User update = new User();
@@ -130,7 +145,6 @@ class UserControllerTest {
         assertThrows(ValidationException.class, () -> controller.update(update));
     }
 
-    // обновление несуществующего пользователя (id=999) → ошибка валидации
     @Test
     void update_shouldThrowWhenUserNotFound() {
         User update = new User();
@@ -140,10 +154,9 @@ class UserControllerTest {
         update.setName("name");
         update.setBirthday(LocalDate.now());
 
-        assertThrows(ValidationException.class, () -> controller.update(update));
+        assertThrows(NotFoundException.class, () -> controller.update(update));
     }
 
-    // обновление пользователя с name = "   " → name становится равен login
     @Test
     void update_shouldUseLoginWhenNameIsBlank() {
         User user = new User();
@@ -164,7 +177,6 @@ class UserControllerTest {
         assertEquals("login", result.getName());
     }
 
-    // обновление существующего пользователя валидными данными → все поля меняются
     @Test
     void update_shouldSucceedWithValidData() {
         User user = new User();

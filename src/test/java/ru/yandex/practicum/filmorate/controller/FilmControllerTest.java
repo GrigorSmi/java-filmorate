@@ -2,22 +2,30 @@ package ru.yandex.practicum.filmorate.controller;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.storage.InMemoryFilmStorage;
 
 import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SpringBootTest
 class FilmControllerTest {
+    @Autowired
     private FilmController controller;
+
+    @Autowired
+    private InMemoryFilmStorage filmStorage;
 
     @BeforeEach
     void setUp() {
-        controller = new FilmController();
+        filmStorage.clearAll();
     }
 
-    // создание фильма с описанием ровно 200 символов → успех
     @Test
     void create_shouldSucceedWhenDescriptionIsExactly200() {
         Film film = new Film();
@@ -30,7 +38,6 @@ class FilmControllerTest {
         assertEquals(200, result.getDescription().length());
     }
 
-    // создание фильма с description = null → успех (поле необязательное)
     @Test
     void create_shouldSucceedWhenDescriptionIsNull() {
         Film film = new Film();
@@ -43,7 +50,6 @@ class FilmControllerTest {
         assertNotNull(result.getId());
     }
 
-    // создание фильма с датой релиза 27.12.1895 (раньше 28.12.1895) → ошибка валидации
     @Test
     void create_shouldThrowWhenReleaseDateBeforeCinemaBirth() {
         Film film = new Film();
@@ -56,7 +62,6 @@ class FilmControllerTest {
         assertEquals("Дата релиза не может быть раньше 28 декабря 1895 года", e.getMessage());
     }
 
-    // создание фильма с датой релиза ровно 28.12.1895 (граничное значение) → успех
     @Test
     void create_shouldSucceedWhenReleaseDateIsExactly18951228() {
         Film film = new Film();
@@ -69,7 +74,6 @@ class FilmControllerTest {
         assertNotNull(result.getId());
     }
 
-    // создание фильма с duration = 0 → ошибка валидации
     @Test
     void create_shouldThrowWhenDurationIsZero() {
         Film film = new Film();
@@ -82,7 +86,6 @@ class FilmControllerTest {
         assertEquals("Продолжительность фильма должна быть положительным числом", e.getMessage());
     }
 
-    // создание фильма с duration = -1 → ошибка валидации
     @Test
     void create_shouldThrowWhenDurationIsNegative() {
         Film film = new Film();
@@ -95,7 +98,6 @@ class FilmControllerTest {
         assertEquals("Продолжительность фильма должна быть положительным числом", e.getMessage());
     }
 
-    // создание полностью валидного фильма → успех, присваивается id
     @Test
     void create_shouldSucceedWithValidFilm() {
         Film film = new Film();
@@ -109,7 +111,6 @@ class FilmControllerTest {
         assertEquals("valid film", result.getName());
     }
 
-    // последовательное создание двух фильмов → id увеличиваются: 1, 2
     @Test
     void create_shouldGenerateIncrementingIds() {
         Film first = new Film();
@@ -131,7 +132,20 @@ class FilmControllerTest {
         assertEquals(2L, r2.getId());
     }
 
-    // обновление фильма без id → ошибка валидации
+    @Test
+    void delete_shouldRemoveFilm() {
+        Film film = new Film();
+        film.setName("name");
+        film.setDescription("desc");
+        film.setReleaseDate(LocalDate.now());
+        film.setDuration(100L);
+        Film created = controller.create(film);
+
+        filmStorage.delete(created.getId());
+
+        assertTrue(filmStorage.findById(created.getId()).isEmpty());
+    }
+
     @Test
     void update_shouldThrowWhenIdIsNull() {
         Film update = new Film();
@@ -141,7 +155,6 @@ class FilmControllerTest {
         assertThrows(ValidationException.class, () -> controller.update(update));
     }
 
-    // обновление несуществующего фильма (id=999) → ошибка валидации
     @Test
     void update_shouldThrowWhenFilmNotFound() {
         Film update = new Film();
@@ -151,10 +164,9 @@ class FilmControllerTest {
         update.setReleaseDate(LocalDate.now());
         update.setDuration(100L);
 
-        assertThrows(ValidationException.class, () -> controller.update(update));
+        assertThrows(NotFoundException.class, () -> controller.update(update));
     }
 
-    // обновление существующего фильма валидными данными → все поля меняются
     @Test
     void update_shouldSucceedWithValidData() {
         Film film = new Film();

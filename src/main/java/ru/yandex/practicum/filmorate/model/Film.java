@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Film.
@@ -23,4 +25,6 @@ public class Film {
 
     private LocalDate releaseDate;
     private Long duration;
+
+    private final Set<Long> likes = new HashSet<>();
 }
