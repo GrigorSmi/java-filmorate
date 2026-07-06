@@ -2,7 +2,9 @@ package ru.yandex.practicum.filmorate.controller;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.InMemoryUserStorage;
@@ -153,7 +155,7 @@ class UserControllerTest {
         update.setName("name");
         update.setBirthday(LocalDate.now());
 
-        assertThrows(ResponseStatusException.class, () -> controller.update(update));
+        assertThrows(NotFoundException.class, () -> controller.update(update));
     }
 
     @Test
