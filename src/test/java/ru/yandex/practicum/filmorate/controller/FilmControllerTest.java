@@ -2,9 +2,7 @@ package ru.yandex.practicum.filmorate.controller;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import org.springframework.web.server.ResponseStatusException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.InMemoryFilmStorage;
@@ -155,6 +153,7 @@ class FilmControllerTest {
         assertThrows(ValidationException.class, () -> controller.update(update));
     }
 
+    // обновление несуществующего фильма (id=999) → ошибка 404
     @Test
     void update_shouldThrowWhenFilmNotFound() {
         Film update = new Film();
@@ -164,7 +163,7 @@ class FilmControllerTest {
         update.setReleaseDate(LocalDate.now());
         update.setDuration(100L);
 
-        assertThrows(NotFoundException.class, () -> controller.update(update));
+        assertThrows(ResponseStatusException.class, () -> controller.update(update));
     }
 
     @Test
