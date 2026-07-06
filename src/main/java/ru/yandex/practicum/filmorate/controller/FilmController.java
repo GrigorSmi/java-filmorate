@@ -10,6 +10,8 @@ import java.time.LocalDate;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Slf4j
 @RestController
@@ -59,7 +61,7 @@ public class FilmController {
         Film oldFilm = films.get(newFilm.getId());
         if (oldFilm == null) {
             log.warn("Фильм с id={} не найден", newFilm.getId());
-            throw new ValidationException("Фильм с id=" + newFilm.getId() + " не найден");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Фильм с id=" + newFilm.getId() + " не найден");
         }
         oldFilm.setName(newFilm.getName());
         oldFilm.setDescription(newFilm.getDescription());
@@ -69,12 +71,9 @@ public class FilmController {
         return oldFilm;
     }
 
+    private long nextId = 1;
+
     private long getNextId() {
-        long currentMaxId = films.keySet()
-                .stream()
-                .mapToLong(id -> id)
-                .max()
-                .orElse(0);
-        return ++currentMaxId;
+        return nextId++;
     }
 }

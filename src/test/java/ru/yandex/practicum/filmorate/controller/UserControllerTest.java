@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.controller;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.server.ResponseStatusException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
@@ -130,7 +131,7 @@ class UserControllerTest {
         assertThrows(ValidationException.class, () -> controller.update(update));
     }
 
-    // обновление несуществующего пользователя (id=999) → ошибка валидации
+    // обновление несуществующего пользователя (id=999) → ошибка 404
     @Test
     void update_shouldThrowWhenUserNotFound() {
         User update = new User();
@@ -140,7 +141,7 @@ class UserControllerTest {
         update.setName("name");
         update.setBirthday(LocalDate.now());
 
-        assertThrows(ValidationException.class, () -> controller.update(update));
+        assertThrows(ResponseStatusException.class, () -> controller.update(update));
     }
 
     // обновление пользователя с name = "   " → name становится равен login

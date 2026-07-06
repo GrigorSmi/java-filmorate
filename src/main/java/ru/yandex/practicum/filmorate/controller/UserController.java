@@ -9,6 +9,8 @@ import ru.yandex.practicum.filmorate.model.User;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Slf4j
 @RestController
@@ -24,7 +26,7 @@ public class UserController {
     @PostMapping
     public User create(@Valid @RequestBody User user) {
         log.info("Запрос на создание пользователя: {}", user);
-        if (user.getLogin() != null && user.getLogin().contains(" ")) {
+        if (user.getLogin().contains(" ")) {
             log.warn("Ошибка валидации: логин содержит пробелы: {}", user.getLogin());
             throw new ValidationException("Логин не может содержать пробелы");
         }
@@ -52,7 +54,7 @@ public class UserController {
         User oldUser = users.get(newUser.getId());
         if (oldUser == null) {
             log.warn("Пользователь с id={} не найден", newUser.getId());
-            throw new ValidationException("Пользователь с id=" + newUser.getId() + " не найден");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь с id=" + newUser.getId() + " не найден");
         }
         oldUser.setEmail(newUser.getEmail());
         oldUser.setLogin(newUser.getLogin());
@@ -62,12 +64,9 @@ public class UserController {
         return oldUser;
     }
 
+    private long nextId = 1;
+
     private long getNextId() {
-        long currentMaxId = users.keySet()
-                .stream()
-                .mapToLong(id -> id)
-                .max()
-                .orElse(0);
-        return ++currentMaxId;
+        return nextId++;
     }
 }
