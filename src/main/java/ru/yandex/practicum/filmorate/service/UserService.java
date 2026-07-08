@@ -22,10 +22,18 @@ public class UserService {
     }
 
     public User add(User user) {
+        if (user.getName() == null || user.getName().isBlank()) {
+            user.setName(user.getLogin());
+            log.debug("Имя пользователя пустое, будет использован логин: {}", user.getLogin());
+        }
         return userStorage.add(user);
     }
 
     public User update(User user) {
+        if (user.getName() == null || user.getName().isBlank()) {
+            user.setName(user.getLogin());
+            log.debug("Имя пользователя пустое, будет использован логин: {}", user.getLogin());
+        }
         return userStorage.update(user);
     }
 
@@ -42,23 +50,11 @@ public class UserService {
         if (userId.equals(friendId)) {
             throw new ValidationException("Нельзя добавить себя в друзья");
         }
-        User user = userStorage.findById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
-        User friend = userStorage.findById(friendId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + friendId + " не найден"));
-        user.getFriends().add(friendId);
-        friend.getFriends().add(userId);
-        log.info("Пользователи {} и {} теперь друзья", userId, friendId);
+        userStorage.addFriend(userId, friendId);
     }
 
     public void removeFriend(Long userId, Long friendId) {
-        User user = userStorage.findById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
-        User friend = userStorage.findById(friendId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + friendId + " не найден"));
-        user.getFriends().remove(friendId);
-        friend.getFriends().remove(userId);
-        log.info("Пользователи {} и {} больше не друзья", userId, friendId);
+        userStorage.removeFriend(userId, friendId);
     }
 
     public List<User> getFriends(Long userId) {

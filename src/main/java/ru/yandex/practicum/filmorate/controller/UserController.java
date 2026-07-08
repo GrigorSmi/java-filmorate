@@ -33,14 +33,6 @@ public class UserController {
     @PostMapping
     public User create(@Valid @RequestBody User user) {
         log.info("Запрос на создание пользователя: {}", user);
-        if (user.getLogin().contains(" ")) {
-            log.warn("Ошибка валидации: логин содержит пробелы: {}", user.getLogin());
-            throw new ValidationException("Логин не может содержать пробелы");
-        }
-        if (user.getName() == null || user.getName().isBlank()) {
-            log.debug("Имя пользователя пустое, будет использован логин: {}", user.getLogin());
-            user.setName(user.getLogin());
-        }
         User created = userService.add(user);
         log.info("Добавлен пользователь: id={}, email={}", created.getId(), created.getEmail());
         return created;
@@ -52,14 +44,6 @@ public class UserController {
         if (newUser.getId() == null) {
             log.warn("Ошибка: id пользователя не указан");
             throw new ValidationException("id пользователя не указан");
-        }
-        if (newUser.getLogin().contains(" ")) {
-            log.warn("Ошибка валидации: логин содержит пробелы: {}", newUser.getLogin());
-            throw new ValidationException("Логин не может содержать пробелы");
-        }
-        if (newUser.getName() == null || newUser.getName().isBlank()) {
-            log.debug("Имя пользователя пустое, будет использован логин: {}", newUser.getLogin());
-            newUser.setName(newUser.getLogin());
         }
         User updated = userService.update(newUser);
         log.info("Обновлён пользователь: id={}, email={}", updated.getId(), updated.getEmail());

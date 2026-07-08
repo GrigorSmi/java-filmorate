@@ -54,4 +54,30 @@ public class InMemoryFilmStorage implements FilmStorage {
         films.clear();
         nextId = 1;
     }
+
+    @Override
+    public void addLike(Long filmId, Long userId) {
+        Film film = films.get(filmId);
+        if (film == null) {
+            throw new NotFoundException("Фильм с id=" + filmId + " не найден");
+        }
+        if (!film.getLikes().add(userId)) {
+            log.warn("Пользователь {} уже поставил лайк фильму {}", userId, filmId);
+        } else {
+            log.info("Пользователь {} поставил лайк фильму {}", userId, filmId);
+        }
+    }
+
+    @Override
+    public void removeLike(Long filmId, Long userId) {
+        Film film = films.get(filmId);
+        if (film == null) {
+            throw new NotFoundException("Фильм с id=" + filmId + " не найден");
+        }
+        if (!film.getLikes().remove(userId)) {
+            log.warn("Лайк пользователя {} у фильма {} не найден", userId, filmId);
+        } else {
+            log.info("Пользователь {} убрал лайк с фильма {}", userId, filmId);
+        }
+    }
 }

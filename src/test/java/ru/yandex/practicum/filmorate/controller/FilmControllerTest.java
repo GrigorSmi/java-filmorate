@@ -1,5 +1,7 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +12,7 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.InMemoryFilmStorage;
 
 import java.time.LocalDate;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -20,6 +23,9 @@ class FilmControllerTest {
 
     @Autowired
     private InMemoryFilmStorage filmStorage;
+
+    @Autowired
+    private Validator validator;
 
     @BeforeEach
     void setUp() {
@@ -58,8 +64,10 @@ class FilmControllerTest {
         film.setReleaseDate(LocalDate.of(1895, 12, 27));
         film.setDuration(100L);
 
-        ValidationException e = assertThrows(ValidationException.class, () -> controller.create(film));
-        assertEquals("Дата релиза не может быть раньше 28 декабря 1895 года", e.getMessage());
+        Set<ConstraintViolation<Film>> violations = validator.validate(film);
+        assertFalse(violations.isEmpty());
+        assertTrue(violations.stream().anyMatch(v ->
+                v.getMessage().equals("Дата релиза не может быть раньше 28 декабря 1895 года")));
     }
 
     @Test
@@ -82,8 +90,10 @@ class FilmControllerTest {
         film.setReleaseDate(LocalDate.now());
         film.setDuration(0L);
 
-        ValidationException e = assertThrows(ValidationException.class, () -> controller.create(film));
-        assertEquals("Продолжительность фильма должна быть положительным числом", e.getMessage());
+        Set<ConstraintViolation<Film>> violations = validator.validate(film);
+        assertFalse(violations.isEmpty());
+        assertTrue(violations.stream().anyMatch(v ->
+                v.getMessage().equals("Продолжительность фильма должна быть положительной")));
     }
 
     @Test
@@ -94,8 +104,10 @@ class FilmControllerTest {
         film.setReleaseDate(LocalDate.now());
         film.setDuration(-1L);
 
-        ValidationException e = assertThrows(ValidationException.class, () -> controller.create(film));
-        assertEquals("Продолжительность фильма должна быть положительным числом", e.getMessage());
+        Set<ConstraintViolation<Film>> violations = validator.validate(film);
+        assertFalse(violations.isEmpty());
+        assertTrue(violations.stream().anyMatch(v ->
+                v.getMessage().equals("Продолжительность фильма должна быть положительной")));
     }
 
     @Test
