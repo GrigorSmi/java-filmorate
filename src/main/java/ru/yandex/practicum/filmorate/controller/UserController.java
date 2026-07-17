@@ -5,39 +5,37 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.UserService;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
+import java.util.List;
 
 @Slf4j
 @RestController
 @RequestMapping("/users")
 public class UserController {
-    private final Map<Long, User> users = new HashMap<>();
+    private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
 
     @GetMapping
     public Collection<User> findAll() {
-        return users.values();
+        return userService.findAll();
+    }
+
+    @GetMapping("/{id}")
+    public User findById(@PathVariable Long id) {
+        return userService.findById(id);
     }
 
     @PostMapping
     public User create(@Valid @RequestBody User user) {
         log.info("Запрос на создание пользователя: {}", user);
-        if (user.getLogin().contains(" ")) {
-            log.warn("Ошибка валидации: логин содержит пробелы: {}", user.getLogin());
-            throw new ValidationException("Логин не может содержать пробелы");
-        }
-        if (user.getName() == null || user.getName().isBlank()) {
-            log.debug("Имя пользователя пустое, будет использован логин: {}", user.getLogin());
-            user.setName(user.getLogin());
-        }
-        user.setId(getNextId());
-        users.put(user.getId(), user);
-        log.info("Добавлен пользователь: id={}, email={}", user.getId(), user.getEmail());
-        return user;
+        User created = userService.add(user);
+        log.info("Добавлен пользователь: id={}, email={}", created.getId(), created.getEmail());
+        return created;
     }
 
     @PutMapping
@@ -47,26 +45,32 @@ public class UserController {
             log.warn("Ошибка: id пользователя не указан");
             throw new ValidationException("id пользователя не указан");
         }
-        if (newUser.getName() == null || newUser.getName().isBlank()) {
-            log.debug("Имя пользователя пустое, будет использован логин: {}", newUser.getLogin());
-            newUser.setName(newUser.getLogin());
-        }
-        User oldUser = users.get(newUser.getId());
-        if (oldUser == null) {
-            log.warn("Пользователь с id={} не найден", newUser.getId());
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь с id=" + newUser.getId() + " не найден");
-        }
-        oldUser.setEmail(newUser.getEmail());
-        oldUser.setLogin(newUser.getLogin());
-        oldUser.setName(newUser.getName());
-        oldUser.setBirthday(newUser.getBirthday());
-        log.info("Обновлён пользователь: id={}, email={}", oldUser.getId(), oldUser.getEmail());
-        return oldUser;
+        User updated = userService.update(newUser);
+        log.info("Обновлён пользователь: id={}, email={}", updated.getId(), updated.getEmail());
+        return updated;
     }
 
-    private long nextId = 1;
+    @PutMapping("/{id}/friends/{friendId}")
+    public void addFriend(@PathVariable Long id, @PathVariable Long friendId) {
+        log.info("Запрос на добавление друга: userId={}, friendId={}", id, friendId);
+        userService.addFriend(id, friendId);
+    }
 
-    private long getNextId() {
-        return nextId++;
+    @DeleteMapping("/{id}/friends/{friendId}")
+    public void removeFriend(@PathVariable Long id, @PathVariable Long friendId) {
+        log.info("Запрос на удаление друга: userId={}, friendId={}", id, friendId);
+        userService.removeFriend(id, friendId);
+    }
+
+    @GetMapping("/{id}/friends")
+    public List<User> getFriends(@PathVariable Long id) {
+        log.info("Запрос списка друзей пользователя {}", id);
+        return userService.getFriends(id);
+    }
+
+    @GetMapping("/{id}/friends/common/{otherId}")
+    public List<User> getCommonFriends(@PathVariable Long id, @PathVariable Long otherId) {
+        log.info("Запрос общих друзей: userId={}, otherId={}", id, otherId);
+        return userService.getCommonFriends(id, otherId);
     }
 }
