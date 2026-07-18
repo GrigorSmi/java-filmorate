@@ -1,0 +1,169 @@
+<mxfile host="app.diagrams.net" agent="5.0">
+  <diagram id="filmorate-db" name="Filmorate DB">
+    <mxGraphModel dx="1212" dy="629" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="mpa_ratings" parent="1" style="shape=table;startSize=30;container=1;collapsible=1;childLayout=tableLayout;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=14;" value="mpa_ratings" vertex="1">
+          <mxGeometry height="140" width="180" x="40" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mpa_id" parent="mpa_ratings" style="shape=partialRectangle;connectable=0;fillColor=#d5e8d4;strokeColor=#82b366;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="id BIGINT PK" vertex="1">
+          <mxGeometry height="30" width="180" as="geometry">
+            <mxPoint y="30" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="mpa_name" parent="mpa_ratings" style="shape=partialRectangle;connectable=0;fillColor=#fff;strokeColor=#82b366;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="name VARCHAR(10) UNIQUE NOT NULL" vertex="1">
+          <mxGeometry height="30" width="180" as="geometry">
+            <mxPoint y="60" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="films" parent="1" style="shape=table;startSize=30;container=1;collapsible=1;childLayout=tableLayout;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=14;" value="films" vertex="1">
+          <mxGeometry height="280" width="220" x="340" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="films_id" parent="films" style="shape=partialRectangle;connectable=0;fillColor=#d5e8d4;strokeColor=#82b366;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="id BIGINT PK" vertex="1">
+          <mxGeometry height="30" width="220" as="geometry">
+            <mxPoint y="30" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="films_name" parent="films" style="shape=partialRectangle;connectable=0;fillColor=#fff;strokeColor=#82b366;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="name VARCHAR(100) NOT NULL" vertex="1">
+          <mxGeometry height="30" width="220" as="geometry">
+            <mxPoint y="60" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="films_desc" parent="films" style="shape=partialRectangle;connectable=0;fillColor=#fff;strokeColor=#82b366;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="description VARCHAR(200)" vertex="1">
+          <mxGeometry height="30" width="220" as="geometry">
+            <mxPoint y="90" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="films_date" parent="films" style="shape=partialRectangle;connectable=0;fillColor=#fff;strokeColor=#82b366;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="release_date DATE NOT NULL" vertex="1">
+          <mxGeometry height="30" width="220" as="geometry">
+            <mxPoint y="120" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="films_dur" parent="films" style="shape=partialRectangle;connectable=0;fillColor=#fff;strokeColor=#82b366;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="duration INT NOT NULL" vertex="1">
+          <mxGeometry height="30" width="220" as="geometry">
+            <mxPoint y="150" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="films_mpa" parent="films" style="shape=partialRectangle;connectable=0;fillColor=#fff;strokeColor=#82b366;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="mpa_rating_id BIGINT FK" vertex="1">
+          <mxGeometry height="30" width="220" as="geometry">
+            <mxPoint y="180" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="genres" parent="1" style="shape=table;startSize=30;container=1;collapsible=1;childLayout=tableLayout;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=14;" value="genres" vertex="1">
+          <mxGeometry height="140" width="180" x="40" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="genres_id" parent="genres" style="shape=partialRectangle;connectable=0;fillColor=#d5e8d4;strokeColor=#82b366;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="id BIGINT PK" vertex="1">
+          <mxGeometry height="30" width="180" as="geometry">
+            <mxPoint y="30" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="genres_name" parent="genres" style="shape=partialRectangle;connectable=0;fillColor=#fff;strokeColor=#82b366;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="name VARCHAR(50) UNIQUE NOT NULL" vertex="1">
+          <mxGeometry height="30" width="180" as="geometry">
+            <mxPoint y="60" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="film_genres" parent="1" style="shape=table;startSize=30;container=1;collapsible=1;childLayout=tableLayout;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=14;" value="film_genres" vertex="1">
+          <mxGeometry height="100" width="220" x="340" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="fg_film" parent="film_genres" style="shape=partialRectangle;connectable=0;fillColor=#fff;strokeColor=#9673a6;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="film_id BIGINT PK, FK" vertex="1">
+          <mxGeometry height="30" width="220" as="geometry">
+            <mxPoint y="30" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fg_genre" parent="film_genres" style="shape=partialRectangle;connectable=0;fillColor=#fff;strokeColor=#9673a6;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="genre_id BIGINT PK, FK" vertex="1">
+          <mxGeometry height="30" width="220" as="geometry">
+            <mxPoint y="60" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="users" parent="1" style="shape=table;startSize=30;container=1;collapsible=1;childLayout=tableLayout;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=14;" value="users" vertex="1">
+          <mxGeometry height="210" width="220" x="700" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="users_id" parent="users" style="shape=partialRectangle;connectable=0;fillColor=#d5e8d4;strokeColor=#82b366;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="id BIGINT PK" vertex="1">
+          <mxGeometry height="30" width="220" as="geometry">
+            <mxPoint y="30" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="users_email" parent="users" style="shape=partialRectangle;connectable=0;fillColor=#fff;strokeColor=#82b366;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="email VARCHAR(100) UNIQUE NOT NULL" vertex="1">
+          <mxGeometry height="30" width="220" as="geometry">
+            <mxPoint y="60" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="users_login" parent="users" style="shape=partialRectangle;connectable=0;fillColor=#fff;strokeColor=#82b366;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="login VARCHAR(100) UNIQUE NOT NULL" vertex="1">
+          <mxGeometry height="30" width="220" as="geometry">
+            <mxPoint y="90" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="users_name" parent="users" style="shape=partialRectangle;connectable=0;fillColor=#fff;strokeColor=#82b366;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="name VARCHAR(100)" vertex="1">
+          <mxGeometry height="30" width="220" as="geometry">
+            <mxPoint y="120" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="users_bday" parent="users" style="shape=partialRectangle;connectable=0;fillColor=#fff;strokeColor=#82b366;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="birthday DATE NOT NULL" vertex="1">
+          <mxGeometry height="30" width="220" as="geometry">
+            <mxPoint y="150" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="friendships" parent="1" style="shape=table;startSize=30;container=1;collapsible=1;childLayout=tableLayout;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=14;" value="friendships" vertex="1">
+          <mxGeometry height="170" width="220" x="700" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="fs_id" parent="friendships" style="shape=partialRectangle;connectable=0;fillColor=#d5e8d4;strokeColor=#82b366;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="id BIGINT PK" vertex="1">
+          <mxGeometry height="30" width="220" as="geometry">
+            <mxPoint y="30" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fs_user" parent="friendships" style="shape=partialRectangle;connectable=0;fillColor=#fff;strokeColor=#d6b656;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="user_id BIGINT FK NOT NULL" vertex="1">
+          <mxGeometry height="30" width="220" as="geometry">
+            <mxPoint y="60" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fs_friend" parent="friendships" style="shape=partialRectangle;connectable=0;fillColor=#fff;strokeColor=#d6b656;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="friend_id BIGINT FK NOT NULL" vertex="1">
+          <mxGeometry height="30" width="220" as="geometry">
+            <mxPoint y="90" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fs_status" parent="friendships" style="shape=partialRectangle;connectable=0;fillColor=#fff;strokeColor=#d6b656;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="status VARCHAR(20) NOT NULL" vertex="1">
+          <mxGeometry height="30" width="220" as="geometry">
+            <mxPoint y="120" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="likes" parent="1" style="shape=table;startSize=30;container=1;collapsible=1;childLayout=tableLayout;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=14;" value="likes" vertex="1">
+          <mxGeometry height="100" width="220" x="1020" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="likes_film" parent="likes" style="shape=partialRectangle;connectable=0;fillColor=#fff;strokeColor=#9673a6;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="film_id BIGINT PK, FK" vertex="1">
+          <mxGeometry height="30" width="220" as="geometry">
+            <mxPoint y="30" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="likes_user" parent="likes" style="shape=partialRectangle;connectable=0;fillColor=#fff;strokeColor=#9673a6;top=0;left=0;right=0;bottom=1;overflow=hidden;fontStyle=0;fontSize=12;" value="user_id BIGINT PK, FK" vertex="1">
+          <mxGeometry height="30" width="220" as="geometry">
+            <mxPoint y="60" as="relative" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="films_mpa" style="endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;edgeStyle=orthogonalEdgeStyle;" target="mpa_ratings">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="fg_film" style="endArrow=ERmany;endFill=0;startArrow=ERmany;startFill=0;edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="450" y="330" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="fg_genre" style="endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;" target="genres_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="fs_user" style="endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;edgeStyle=orthogonalEdgeStyle;strokeColor=#d6b656;" target="users_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="fs_friend" style="endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;edgeStyle=orthogonalEdgeStyle;strokeColor=#d6b656;" target="users_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="likes_film" style="endArrow=ERmany;endFill=0;startArrow=ERmany;startFill=0;edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;" target="films_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="likes_user" style="endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;" target="users_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
