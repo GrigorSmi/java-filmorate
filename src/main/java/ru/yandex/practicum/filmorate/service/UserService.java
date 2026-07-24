@@ -1,29 +1,37 @@
 package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.model.Friendship;
 import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.storage.FriendshipRepository;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
-import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Slf4j
 @Service
 public class UserService {
     private final UserStorage userStorage;
-    private final FriendshipRepository friendshipRepository;
+    private final JdbcTemplate jdbc;
 
-    public UserService(UserStorage userStorage, FriendshipRepository friendshipRepository) {
+    private final RowMapper<User> userRowMapper = (rs, rowNum) -> {
+        User user = new User();
+        user.setId(rs.getLong("id"));
+        user.setEmail(rs.getString("email"));
+        user.setLogin(rs.getString("login"));
+        user.setName(rs.getString("name"));
+        user.setBirthday(rs.getDate("birthday").toLocalDate());
+        return user;
+    };
+
+    public UserService(@Qualifier("db") UserStorage userStorage, JdbcTemplate jdbc) {
         this.userStorage = userStorage;
-        this.friendshipRepository = friendshipRepository;
+        this.jdbc = jdbc;
     }
 
     public User add(User user) {
@@ -42,8 +50,8 @@ public class UserService {
         return userStorage.update(user);
     }
 
-    public Collection<User> findAll() {
-        return userStorage.findAll();
+    public List<User> findAll() {
+        return userStorage.findAll().stream().toList();
     }
 
     public User findById(Long id) {
@@ -60,22 +68,26 @@ public class UserService {
         userStorage.findById(friendId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + friendId + " не найден"));
 
-        friendshipRepository.findByUserIdAndFriendId(userId, friendId)
-                .ifPresentOrElse(
-                        friendship -> log.info("Запрос на дружбу уже существует: {} -> {}", userId, friendId),
-                        () -> {
-                            Friendship friendship = new Friendship();
-                            friendship.setUser(userStorage.findById(userId).orElseThrow());
-                            friendship.setFriend(userStorage.findById(friendId).orElseThrow());
-                            friendship.setStatus(FriendshipStatus.UNCONFIRMED);
-                            friendshipRepository.save(friendship);
-                            log.info("Пользователь {} отправил запрос на дружбу пользователю {}", userId, friendId);
-                        }
-                );
+        List<Long> existing = jdbc.queryForList(
+                "SELECT id FROM friendships WHERE user_id = ? AND friend_id = ?",
+                Long.class, userId, friendId
+        );
+        if (!existing.isEmpty()) {
+            log.info("Запрос на дружбу уже существует: {} -> {}", userId, friendId);
+            return;
+        }
+
+        jdbc.update("INSERT INTO friendships (user_id, friend_id, status) VALUES (?, ?, ?)",
+                userId, friendId, FriendshipStatus.UNCONFIRMED.name());
+        log.info("Пользователь {} отправил запрос на дружбу пользователю {}", userId, friendId);
     }
 
     public void removeFriend(Long userId, Long friendId) {
-        friendshipRepository.deleteByUserIdAndFriendId(userId, friendId);
+        userStorage.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
+        userStorage.findById(friendId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + friendId + " не найден"));
+        jdbc.update("DELETE FROM friendships WHERE user_id = ? AND friend_id = ?", userId, friendId);
         log.info("Дружба между {} и {} удалена", userId, friendId);
     }
 
@@ -83,21 +95,27 @@ public class UserService {
         userStorage.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
 
-        List<Friendship> asUser = friendshipRepository.findByUserId(userId);
-        List<Friendship> asFriend = friendshipRepository.findByFriendId(userId);
-
-        return Stream.concat(asUser.stream(), asFriend.stream())
-                .map(f -> f.getUser().getId().equals(userId) ? f.getFriend() : f.getUser())
-                .distinct()
-                .collect(Collectors.toList());
+        return jdbc.query(
+                "SELECT u.id, u.email, u.login, u.name, u.birthday " +
+                "FROM users u JOIN friendships f ON u.id = f.friend_id " +
+                "WHERE f.user_id = ? ORDER BY u.id",
+                userRowMapper, userId
+        );
     }
 
     public List<User> getCommonFriends(Long userId, Long otherId) {
-        List<User> friends1 = getFriends(userId);
-        List<User> friends2 = getFriends(otherId);
+        userStorage.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
+        userStorage.findById(otherId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + otherId + " не найден"));
 
-        return friends1.stream()
-                .filter(friends2::contains)
-                .collect(Collectors.toList());
+        return jdbc.query(
+                "SELECT u.id, u.email, u.login, u.name, u.birthday " +
+                "FROM users u " +
+                "JOIN friendships f1 ON u.id = f1.friend_id AND f1.user_id = ? " +
+                "JOIN friendships f2 ON u.id = f2.friend_id AND f2.user_id = ? " +
+                "ORDER BY u.id",
+                userRowMapper, userId, otherId
+        );
     }
 }

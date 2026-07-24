@@ -10,6 +10,7 @@ import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -35,7 +36,6 @@ public class Film {
     @Column(nullable = false)
     private String name;
 
-    @NotBlank(message = "Описание не может быть пустым")
     @Size(max = 200, message = "Максимальная длина описания — 200 символов")
     @Column(length = 200)
     private String description;
@@ -59,5 +59,8 @@ public class Film {
 
     @ManyToOne
     @JoinColumn(name = "mpa_rating_id")
-    private MpaRating mpaRating;
+    private MpaRating mpa;
+
+    @Transient
+    private Set<Long> likes = new HashSet<>();
 }
