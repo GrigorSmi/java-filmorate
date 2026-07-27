@@ -39,7 +39,7 @@ public class UserService {
             user.setName(user.getLogin());
             log.debug("Имя пользователя пустое, будет использован логин: {}", user.getLogin());
         }
-        return userStorage.add(user);
+        return userStorage.add(user);//локально верно
     }
 
     public User update(User user) {

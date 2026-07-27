@@ -50,7 +50,11 @@ public class UserDbStorage implements UserStorage {
             ps.setDate(4, java.sql.Date.valueOf(user.getBirthday()));
             return ps;
         }, keyHolder);
-        user.setId(keyHolder.getKey().longValue());
+        Number key = keyHolder.getKey();
+        if (key == null) {
+            throw new IllegalStateException("Не удалось получить id нового пользователя");
+        }
+        user.setId(key.longValue());
         return user;
     }
 

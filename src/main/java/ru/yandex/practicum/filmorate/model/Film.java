@@ -49,6 +49,7 @@ public class Film {
 
     @ManyToOne
     @JoinColumn(name = "mpa_rating_id")
+    @NotNull(message = "Рейтинг MPA обязателен")
     private MpaRating mpa;
 
     @Transient

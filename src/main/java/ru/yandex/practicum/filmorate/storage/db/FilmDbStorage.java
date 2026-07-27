@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -16,6 +17,7 @@ import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Repository
 @Qualifier("db")
@@ -29,10 +31,9 @@ public class FilmDbStorage implements FilmStorage {
         film.setDescription(rs.getString("description"));
         film.setReleaseDate(rs.getDate("release_date").toLocalDate());
         film.setDuration(rs.getLong("duration"));
-        long mpaId = rs.getLong("mpa_rating_id");
         MpaRating mpa = new MpaRating();
-        mpa.setId(mpaId);
-        mpa.setName(getMpaName(mpaId));
+        mpa.setId(rs.getLong("mpa_rating_id"));
+        mpa.setName(rs.getString("mpa_name"));
         film.setMpa(mpa);
         return film;
     };
@@ -41,43 +42,59 @@ public class FilmDbStorage implements FilmStorage {
         this.jdbc = jdbc;
     }
 
-    private String getMpaName(Long id) {
-        List<String> result = jdbc.queryForList("SELECT name FROM mpa_ratings WHERE id = ?", String.class, id);
-        return result.isEmpty() ? null : result.get(0);
-    }
+    private void enrichFilms(List<Film> films) {
+        if (films.isEmpty()) return;
 
-    private void loadGenres(Film film) {
-        List<Genre> genres = jdbc.query(
-                "SELECT g.id, g.name FROM genres g " +
-                "JOIN film_genres fg ON g.id = fg.genre_id " +
-                "WHERE fg.film_id = ? ORDER BY g.id",
+        Set<Long> filmIds = films.stream()
+                .map(Film::getId)
+                .collect(Collectors.toSet());
+        String inClause = filmIds.stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
+
+        Map<Long, Set<Genre>> genresByFilm = new HashMap<>();
+        jdbc.query(
+                "SELECT fg.film_id, g.id, g.name FROM film_genres fg " +
+                        "JOIN genres g ON fg.genre_id = g.id " +
+                        "WHERE fg.film_id IN (" + inClause + ") ORDER BY g.id",
                 (rs, rowNum) -> {
+                    long filmId = rs.getLong("film_id");
                     Genre genre = new Genre();
                     genre.setId(rs.getLong("id"));
                     genre.setName(rs.getString("name"));
-                    return genre;
-                },
-                film.getId()
+                    genresByFilm.computeIfAbsent(filmId, k -> new LinkedHashSet<>()).add(genre);
+                    return null;
+                }
         );
-        film.setGenres(new LinkedHashSet<>(genres));
-    }
 
-    private void loadLikes(Film film) {
-        Set<Long> likes = new HashSet<>(
-                jdbc.queryForList("SELECT user_id FROM likes WHERE film_id = ?", Long.class, film.getId())
+        Map<Long, Set<Long>> likesByFilm = new HashMap<>();
+        jdbc.query(
+                "SELECT film_id, user_id FROM likes WHERE film_id IN (" + inClause + ")",
+                (rs, rowNum) -> {
+                    long filmId = rs.getLong("film_id");
+                    likesByFilm.computeIfAbsent(filmId, k -> new HashSet<>()).add(rs.getLong("user_id"));
+                    return null;
+                }
         );
-        film.setLikes(likes);
+
+        for (Film film : films) {
+            film.setGenres(genresByFilm.getOrDefault(film.getId(), new LinkedHashSet<>()));
+            film.setLikes(likesByFilm.getOrDefault(film.getId(), new HashSet<>()));
+        }
     }
 
     private void enrichFilm(Film film) {
-        if (film.getMpa() != null && film.getMpa().getName() == null) {
-            film.getMpa().setName(getMpaName(film.getMpa().getId()));
-        }
-        loadGenres(film);
-        loadLikes(film);
+        enrichFilms(List.of(film));
+    }
+
+    private String loadMpaName(Long mpaId) {
+        List<String> names = jdbc.queryForList(
+                "SELECT name FROM mpa_ratings WHERE id = ?", String.class, mpaId);
+        return names.isEmpty() ? null : names.get(0);
     }
 
     @Override
+    @Transactional
     public Film add(Film film) {
         String sql = "INSERT INTO films (name, description, release_date, duration, mpa_rating_id) VALUES (?, ?, ?, ?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -106,11 +123,15 @@ public class FilmDbStorage implements FilmStorage {
             }
         }
 
+        if (film.getMpa() != null && film.getMpa().getName() == null) {
+            film.getMpa().setName(loadMpaName(film.getMpa().getId()));
+        }
         enrichFilm(film);
         return film;
     }
 
     @Override
+    @Transactional
     public Film update(Film film) {
         findById(film.getId())
                 .orElseThrow(() -> new NotFoundException("Фильм с id=" + film.getId() + " не найден"));
@@ -131,13 +152,9 @@ public class FilmDbStorage implements FilmStorage {
             }
         }
 
-        jdbc.update("DELETE FROM likes WHERE film_id = ?", film.getId());
-        if (film.getLikes() != null) {
-            for (Long userId : film.getLikes()) {
-                jdbc.update("INSERT INTO likes (film_id, user_id) VALUES (?, ?)", film.getId(), userId);
-            }
+        if (film.getMpa() != null && film.getMpa().getName() == null) {
+            film.getMpa().setName(loadMpaName(film.getMpa().getId()));
         }
-
         enrichFilm(film);
         return film;
     }
@@ -150,27 +167,26 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public Collection<Film> findAll() {
         List<Film> films = jdbc.query(
-                "SELECT id, name, description, release_date, duration, mpa_rating_id FROM films",
+                "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name AS mpa_name " +
+                        "FROM films f JOIN mpa_ratings m ON f.mpa_rating_id = m.id",
                 filmRowMapper
         );
-        for (Film film : films) {
-            enrichFilm(film);
-        }
+        enrichFilms(films);
         return films;
     }
 
     @Override
     public Optional<Film> findById(Long id) {
         List<Film> result = jdbc.query(
-                "SELECT id, name, description, release_date, duration, mpa_rating_id FROM films WHERE id = ?",
+                "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name AS mpa_name " +
+                        "FROM films f JOIN mpa_ratings m ON f.mpa_rating_id = m.id WHERE f.id = ?",
                 filmRowMapper, id
         );
         if (result.isEmpty()) {
             return Optional.empty();
         }
-        Film film = result.get(0);
-        enrichFilm(film);
-        return Optional.of(film);
+        enrichFilm(result.get(0));
+        return Optional.of(result.get(0));
     }
 
     @Override
@@ -182,7 +198,7 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public void addLike(Long filmId, Long userId) {
-        jdbc.update("INSERT INTO likes (film_id, user_id) VALUES (?, ?)", filmId, userId);
+        jdbc.update("MERGE INTO likes (film_id, user_id) KEY (film_id, user_id) VALUES (?, ?)", filmId, userId);
     }
 
     @Override
@@ -192,16 +208,16 @@ public class FilmDbStorage implements FilmStorage {
 
     public List<Film> getPopular(int count) {
         List<Film> films = jdbc.query(
-                "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id " +
-                "FROM films f LEFT JOIN likes l ON f.id = l.film_id " +
-                "GROUP BY f.id " +
-                "ORDER BY COUNT(l.user_id) DESC, f.id " +
-                "LIMIT ?",
+                "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name AS mpa_name " +
+                        "FROM films f " +
+                        "JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
+                        "LEFT JOIN likes l ON f.id = l.film_id " +
+                        "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name " +
+                        "ORDER BY COUNT(l.user_id) DESC, f.id " +
+                        "LIMIT ?",
                 filmRowMapper, count
         );
-        for (Film film : films) {
-            enrichFilm(film);
-        }
+        enrichFilms(films);
         return films;
     }
 }
