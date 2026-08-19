@@ -21,11 +21,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @JdbcTest
 @AutoConfigureTestDatabase
-@Import({FilmDbStorage.class, UserDbStorage.class})
+@Import({FilmDbStorage.class, UserDbStorage.class, DirectorDbStorage.class})
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 class FilmDbStorageTest {
     private final FilmDbStorage filmStorage;
     private final UserDbStorage userStorage;
+    private final DirectorDbStorage directorStorage;
     private final JdbcTemplate jdbc;
 
     @BeforeEach
@@ -35,6 +36,13 @@ class FilmDbStorageTest {
         jdbc.update("DELETE FROM film_genres");
         jdbc.update("DELETE FROM films");
         jdbc.update("DELETE FROM users");
+        jdbc.update("DELETE FROM directors");
+    }
+
+    private Director createDirector(String name) {
+        Director director = new Director();
+        director.setName(name);
+        return directorStorage.add(director);
     }
 
     private Film createFilm(String name) {
@@ -263,57 +271,52 @@ class FilmDbStorageTest {
 
     @Test
     void testAddWithDirectors() {
+        Director d1 = createDirector("Director 1");
+        Director d2 = createDirector("Director 2");
+
         Film film = createFilm("WithDirectors");
-        Director d1 = new Director();
-        d1.setId(1L);
-        Director d2 = new Director();
-        d2.setId(2L);
         film.setDirectors(new HashSet<>(List.of(d1, d2)));
 
         Film saved = filmStorage.add(film);
 
         assertThat(saved.getId()).isNotNull();
         assertThat(saved.getDirectors()).hasSize(2);
-        assertThat(saved.getDirectors()).extracting(Director::getId).containsExactlyInAnyOrder(1L, 2L);
+        assertThat(saved.getDirectors()).extracting(Director::getId).containsExactlyInAnyOrder(d1.getId(), d2.getId());
     }
 
     @Test
     void testFindByIdWithDirectors() {
+        Director d = createDirector("Director");
         Film film = createFilm("WithDirectors");
-        Director d = new Director();
-        d.setId(1L);
         film.setDirectors(new HashSet<>(Set.of(d)));
         Film saved = filmStorage.add(film);
 
         Optional<Film> found = filmStorage.findById(saved.getId());
         assertThat(found).isPresent();
         assertThat(found.get().getDirectors()).hasSize(1);
-        assertThat(found.get().getDirectors().iterator().next().getId()).isEqualTo(1L);
+        assertThat(found.get().getDirectors().iterator().next().getId()).isEqualTo(d.getId());
     }
 
     @Test
     void testUpdateDirectors() {
+        Director d1 = createDirector("Director 1");
         Film film = createFilm("WithDirectors");
-        Director d1 = new Director();
-        d1.setId(1L);
         film.setDirectors(new HashSet<>(List.of(d1)));
         Film saved = filmStorage.add(film);
 
-        Director d2 = new Director();
-        d2.setId(2L);
+        Director d2 = createDirector("Director 2");
         saved.setDirectors(new HashSet<>(List.of(d2)));
         filmStorage.update(saved);
 
         Optional<Film> found = filmStorage.findById(saved.getId());
         assertThat(found).isPresent();
         assertThat(found.get().getDirectors()).hasSize(1);
-        assertThat(found.get().getDirectors().extracting(Director::getId).containsExactly(2L));
+        assertThat(found.get().getDirectors()).extracting(Director::getId).containsExactly(d2.getId());
     }
 
     @Test
     void testGetFilmsByDirectorSortByYear() {
-        Director director = new Director();
-        director.setId(1L);
+        Director director = createDirector("Director");
 
         Film film1 = createFilm("Film2020");
         film1.setReleaseDate(LocalDate.of(2020, 1, 1));
@@ -333,8 +336,7 @@ class FilmDbStorageTest {
 
     @Test
     void testGetFilmsByDirectorSortByLikes() {
-        Director director = new Director();
-        director.setId(1L);
+        Director director = createDirector("Director");
 
         Film film1 = createFilm("Popular");
         film1.setDirectors(new HashSet<>(Set.of(director)));
