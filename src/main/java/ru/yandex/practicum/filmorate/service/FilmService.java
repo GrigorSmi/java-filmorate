@@ -4,10 +4,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
+import ru.yandex.practicum.filmorate.storage.db.DirectorDbStorage;
 import ru.yandex.practicum.filmorate.storage.db.FilmDbStorage;
 import ru.yandex.practicum.filmorate.storage.db.GenreDbStorage;
 import ru.yandex.practicum.filmorate.storage.db.MpaRatingDbStorage;
@@ -22,15 +24,18 @@ public class FilmService {
     private final UserStorage userStorage;
     private final MpaRatingDbStorage mpaStorage;
     private final GenreDbStorage genreStorage;
+    private final DirectorDbStorage directorStorage;
 
     public FilmService(@Qualifier("db") FilmStorage filmStorage,
                        @Qualifier("db") UserStorage userStorage,
                        MpaRatingDbStorage mpaStorage,
-                       GenreDbStorage genreStorage) {
+                       GenreDbStorage genreStorage,
+                       DirectorDbStorage directorStorage) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
         this.mpaStorage = mpaStorage;
         this.genreStorage = genreStorage;
+        this.directorStorage = directorStorage;
     }
 
     private void validateFilmReferences(Film film) {
@@ -42,6 +47,12 @@ public class FilmService {
             for (Genre genre : film.getGenres()) {
                 genreStorage.findById(genre.getId())
                         .orElseThrow(() -> new NotFoundException("Жанр с id=" + genre.getId() + " не найден"));
+            }
+        }
+        if (film.getDirectors() != null) {
+            for (Director director : film.getDirectors()) {
+                directorStorage.findById(director.getId())
+                        .orElseThrow(() -> new NotFoundException("Режиссёр с id=" + director.getId() + " не найден"));
             }
         }
     }
@@ -88,5 +99,14 @@ public class FilmService {
                 })
                 .limit(count)
                 .toList();
+    }
+
+    public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
+        directorStorage.findById(directorId)
+                .orElseThrow(() -> new NotFoundException("Режиссёр с id=" + directorId + " не найден"));
+        if (filmStorage instanceof FilmDbStorage dbStorage) {
+            return dbStorage.getFilmsByDirector(directorId, sortBy);
+        }
+        return List.of();
     }
 }
