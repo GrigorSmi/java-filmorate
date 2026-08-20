@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @JdbcTest
 @AutoConfigureTestDatabase
 @Import(GenreDbStorage.class)
-@RequiredArgsConstructor(onConstructor_ = @Autowired)
+@RequiredArgsConstructor
 class GenreDbStorageTest {
     private final GenreDbStorage genreStorage;
 

@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureTestDatabase
 @Import(UserDbStorage.class)
 @Transactional // <-- 2. ДОБАВЛЕНО: автоматически откатывает изменения в БД после каждого теста
-@RequiredArgsConstructor(onConstructor_ = @Autowired)
+@RequiredArgsConstructor
 class UserDbStorageTest {
 
     private final UserDbStorage userStorage;

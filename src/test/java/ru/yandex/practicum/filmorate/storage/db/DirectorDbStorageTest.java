@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @JdbcTest
 @AutoConfigureTestDatabase
 @Import(DirectorDbStorage.class)
-@RequiredArgsConstructor(onConstructor_ = @Autowired)
+@RequiredArgsConstructor
 class DirectorDbStorageTest {
     private final DirectorDbStorage directorStorage;
     private final JdbcTemplate jdbc;

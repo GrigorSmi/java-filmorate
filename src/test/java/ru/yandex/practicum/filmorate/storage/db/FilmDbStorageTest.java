@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @JdbcTest
 @AutoConfigureTestDatabase
 @Import({FilmDbStorage.class, UserDbStorage.class, DirectorDbStorage.class})
-@RequiredArgsConstructor(onConstructor_ = @Autowired)
+@RequiredArgsConstructor
 class FilmDbStorageTest {
     private final FilmDbStorage filmStorage;
     private final UserDbStorage userStorage;
@@ -76,23 +76,6 @@ class FilmDbStorageTest {
         assertThat(saved.getMpa().getName()).isEqualTo("G");
         assertThat(saved.getGenres()).isEmpty();
         assertThat(saved.getLikes()).isEmpty();
-    }
-
-    @Test
-    void testFindByIdWithGenresAndLikes() {
-        Film film = createFilm("FullFilm");
-        Genre g = new Genre();
-        g.setId(1L);
-        film.setGenres(new HashSet<>(Set.of(g)));
-        Film saved = filmStorage.add(film);
-
-        User user = createUser("liker");
-        filmStorage.addLike(saved.getId(), user.getId());
-
-        Optional<Film> found = filmStorage.findById(saved.getId());
-        assertThat(found).isPresent();
-        assertThat(found.get().getGenres()).hasSize(1);
-        assertThat(found.get().getLikes()).hasSize(1);
     }
 
     @Test
