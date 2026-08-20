@@ -4,15 +4,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
-import ru.yandex.practicum.filmorate.storage.db.DirectorDbStorage;
 import ru.yandex.practicum.filmorate.storage.db.FilmDbStorage;
-import ru.yandex.practicum.filmorate.storage.db.GenreDbStorage;
-import ru.yandex.practicum.filmorate.storage.db.MpaRatingDbStorage;
 
 import java.util.Collection;
 import java.util.List;
@@ -22,37 +18,34 @@ import java.util.List;
 public class FilmService {
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
-    private final MpaRatingDbStorage mpaStorage;
-    private final GenreDbStorage genreStorage;
-    private final DirectorDbStorage directorStorage;
+    private final MpaRatingService mpaService;
+    private final GenreService genreService;
+    private final DirectorService directorService;
 
     public FilmService(@Qualifier("db") FilmStorage filmStorage,
                        @Qualifier("db") UserStorage userStorage,
-                       MpaRatingDbStorage mpaStorage,
-                       GenreDbStorage genreStorage,
-                       DirectorDbStorage directorStorage) {
+                       MpaRatingService mpaService,
+                       GenreService genreService,
+                       DirectorService directorService) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
-        this.mpaStorage = mpaStorage;
-        this.genreStorage = genreStorage;
-        this.directorStorage = directorStorage;
+        this.mpaService = mpaService;
+        this.genreService = genreService;
+        this.directorService = directorService;
     }
 
     private void validateFilmReferences(Film film) {
         if (film.getMpa() != null) {
-            mpaStorage.findById(film.getMpa().getId())
-                    .orElseThrow(() -> new NotFoundException("Рейтинг MPA с id=" + film.getMpa().getId() + " не найден"));
+            mpaService.findById(film.getMpa().getId());
         }
         if (film.getGenres() != null) {
             for (Genre genre : film.getGenres()) {
-                genreStorage.findById(genre.getId())
-                        .orElseThrow(() -> new NotFoundException("Жанр с id=" + genre.getId() + " не найден"));
+                genreService.findById(genre.getId());
             }
         }
         if (film.getDirectors() != null) {
-            for (Director director : film.getDirectors()) {
-                directorStorage.findById(director.getId())
-                        .orElseThrow(() -> new NotFoundException("Режиссёр с id=" + director.getId() + " не найден"));
+            for (var director : film.getDirectors()) {
+                directorService.findById(director.getId());
             }
         }
     }
@@ -102,8 +95,7 @@ public class FilmService {
     }
 
     public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
-        directorStorage.findById(directorId)
-                .orElseThrow(() -> new NotFoundException("Режиссёр с id=" + directorId + " не найден"));
+        directorService.findById(directorId);
         if (filmStorage instanceof FilmDbStorage dbStorage) {
             return dbStorage.getFilmsByDirector(directorId, sortBy);
         }

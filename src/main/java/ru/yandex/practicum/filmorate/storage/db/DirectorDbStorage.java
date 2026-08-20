@@ -6,6 +6,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.model.Director;
+import ru.yandex.practicum.filmorate.storage.DirectorStorage;
 
 import java.sql.PreparedStatement;
 import java.sql.Statement;
@@ -13,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public class DirectorDbStorage {
+public class DirectorDbStorage implements DirectorStorage {
     private final JdbcTemplate jdbc;
     private final RowMapper<Director> directorRowMapper = (rs, rowNum) -> {
         Director director = new Director();
@@ -26,15 +27,18 @@ public class DirectorDbStorage {
         this.jdbc = jdbc;
     }
 
+    @Override
     public List<Director> findAll() {
         return jdbc.query("SELECT id, name FROM directors ORDER BY id", directorRowMapper);
     }
 
+    @Override
     public Optional<Director> findById(Long id) {
         List<Director> result = jdbc.query("SELECT id, name FROM directors WHERE id = ?", directorRowMapper, id);
         return result.stream().findFirst();
     }
 
+    @Override
     public Director add(Director director) {
         String sql = "INSERT INTO directors (name) VALUES (?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -47,11 +51,13 @@ public class DirectorDbStorage {
         return director;
     }
 
+    @Override
     public Director update(Director director) {
         jdbc.update("UPDATE directors SET name = ? WHERE id = ?", director.getName(), director.getId());
         return director;
     }
 
+    @Override
     public void delete(Long id) {
         jdbc.update("DELETE FROM directors WHERE id = ?", id);
     }

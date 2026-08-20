@@ -3,15 +3,15 @@ package ru.yandex.practicum.filmorate.service;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Director;
-import ru.yandex.practicum.filmorate.storage.db.DirectorDbStorage;
+import ru.yandex.practicum.filmorate.storage.DirectorStorage;
 
 import java.util.List;
 
 @Service
 public class DirectorService {
-    private final DirectorDbStorage directorStorage;
+    private final DirectorStorage directorStorage;
 
-    public DirectorService(DirectorDbStorage directorStorage) {
+    public DirectorService(DirectorStorage directorStorage) {
         this.directorStorage = directorStorage;
     }
 
