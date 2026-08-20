@@ -1,8 +1,7 @@
 package ru.yandex.practicum.filmorate.storage.db;
 
-import lombok.RequiredArgsConstructor;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
@@ -14,35 +13,28 @@ import ru.yandex.practicum.filmorate.model.MpaRating;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @JdbcTest
 @AutoConfigureTestDatabase
 @Import({FilmDbStorage.class, UserDbStorage.class, DirectorDbStorage.class})
-@RequiredArgsConstructor
 class FilmDbStorageTest {
-    private final FilmDbStorage filmStorage;
-    private final UserDbStorage userStorage;
-    private final DirectorDbStorage directorStorage;
-    private final JdbcTemplate jdbc;
 
-    @BeforeEach
-    void setUp() {
-        jdbc.update("DELETE FROM likes");
-        jdbc.update("DELETE FROM film_directors");
-        jdbc.update("DELETE FROM film_genres");
-        jdbc.update("DELETE FROM films");
-        jdbc.update("DELETE FROM users");
-        jdbc.update("DELETE FROM directors");
-    }
+    @Autowired
+    private FilmDbStorage filmStorage;
 
-    private Director createDirector(String name) {
-        Director director = new Director();
-        director.setName(name);
-        return directorStorage.add(director);
-    }
+    @Autowired
+    private UserDbStorage userStorage;
+
+    @Autowired
+    private DirectorDbStorage directorStorage;
+
+    @Autowired
+    private JdbcTemplate jdbc;
 
     private Film createFilm(String name) {
         Film film = new Film();
@@ -65,10 +57,17 @@ class FilmDbStorageTest {
         return userStorage.add(user);
     }
 
+    private Director createDirector(String name) {
+        Director director = new Director();
+        director.setName(name);
+        return directorStorage.add(director);
+    }
+
     @Test
     void testAdd() {
         Film film = createFilm("TestFilm");
         Film saved = filmStorage.add(film);
+
         assertThat(saved.getId()).isNotNull();
         assertThat(saved.getName()).isEqualTo("TestFilm");
         assertThat(saved.getMpa()).isNotNull();
@@ -78,8 +77,84 @@ class FilmDbStorageTest {
     }
 
     @Test
+    void testAddWithDirectors() {
+        Film film = createFilm("WithDirectors");
+        Director d1 = createDirector("Режиссёр 1");
+        Director d2 = createDirector("Режиссёр 2");
+        film.setDirectors(Set.of(d1, d2));
+
+        Film saved = filmStorage.add(film);
+
+        assertThat(saved.getId()).isNotNull();
+        assertThat(saved.getDirectors()).hasSize(2);
+        assertThat(saved.getDirectors()).extracting(Director::getName).containsExactlyInAnyOrder("Режиссёр 1", "Режиссёр 2");
+    }
+
+    @Test
+    void testFindById() {
+        Film film = createFilm("FindMe");
+        Film saved = filmStorage.add(film);
+
+        Optional<Film> found = filmStorage.findById(saved.getId());
+
+        assertThat(found).isPresent();
+        assertThat(found.get().getId()).isEqualTo(saved.getId());
+        assertThat(found.get().getName()).isEqualTo("FindMe");
+        assertThat(found.get().getMpa()).isNotNull();
+        assertThat(found.get().getMpa().getName()).isEqualTo("G");
+        assertThat(found.get().getGenres()).isEmpty();
+        assertThat(found.get().getLikes()).isEmpty();
+    }
+
+    @Test
+    void testFindByIdWithGenresAndLikes() {
+        Film film = createFilm("FullFilm");
+        Genre g = new Genre();
+        g.setId(1L);
+        film.setGenres(Set.of(g));
+        Film saved = filmStorage.add(film);
+
+        User user = createUser("liker");
+        filmStorage.addLike(saved.getId(), user.getId());
+
+        Optional<Film> found = filmStorage.findById(saved.getId());
+        assertThat(found).isPresent();
+        assertThat(found.get().getGenres()).hasSize(1);
+        assertThat(found.get().getLikes()).hasSize(1);
+    }
+
+    @Test
+    void testFindByIdWithDirectors() {
+        Film film = createFilm("WithDirectors");
+        Director d = createDirector("Тарантино");
+        film.setDirectors(Set.of(d));
+        Film saved = filmStorage.add(film);
+
+        Optional<Film> found = filmStorage.findById(saved.getId());
+        assertThat(found).isPresent();
+        assertThat(found.get().getDirectors()).hasSize(1);
+        assertThat(found.get().getDirectors()).extracting(Director::getName).containsExactly("Тарантино");
+    }
+
+    @Test
+    void testUpdateDirectors() {
+        Film film = createFilm("WithDirectors");
+        Director d1 = createDirector("Режиссёр 1");
+        film.setDirectors(Set.of(d1));
+        Film saved = filmStorage.add(film);
+
+        Director d2 = createDirector("Режиссёр 2");
+        saved.setDirectors(Set.of(d2));
+        filmStorage.update(saved);
+
+        Optional<Film> found = filmStorage.findById(saved.getId());
+        assertThat(found).isPresent();
+        assertThat(found.get().getDirectors()).hasSize(1);
+        assertThat(found.get().getDirectors()).extracting(Director::getName).containsExactly("Режиссёр 2");
+    }
+
+    @Test
     void testGetPopularFilteredByGenreAndYear() {
-        // Создаем фильмы разных жанров и годов
         Film film1 = createFilm("Old Comedy");
         film1.setReleaseDate(LocalDate.of(1990, 5, 1));
         film1.setGenres(Set.of(new Genre(1L, "Комедия")));
@@ -95,7 +170,6 @@ class FilmDbStorageTest {
         film3.setGenres(Set.of(new Genre(2L, "Драма")));
         Film saved3 = filmStorage.add(film3);
 
-        // Добавляем лайки: New Drama (3), New Comedy (2), Old Comedy (1)
         User u1 = createUser("u1");
         User u2 = createUser("u2");
         User u3 = createUser("u3");
@@ -109,128 +183,63 @@ class FilmDbStorageTest {
 
         filmStorage.addLike(saved1.getId(), u1.getId());
 
-        // Фильтр: только Комедия (genreId=1)
         List<Film> popularComedies = filmStorage.getPopular(10, 1L, null);
         assertThat(popularComedies).hasSize(2);
-        assertThat(popularComedies.get(0).getId()).isEqualTo(saved2.getId()); // New Comedy популярнее
+        assertThat(popularComedies.get(0).getId()).isEqualTo(saved2.getId());
 
-        // Фильтр: только 2020 год
         List<Film> popular2020 = filmStorage.getPopular(10, null, 2020);
         assertThat(popular2020).hasSize(2);
-        assertThat(popular2020.get(0).getId()).isEqualTo(saved3.getId()); // New Drama популярнее
+        assertThat(popular2020.get(0).getId()).isEqualTo(saved3.getId());
 
-        // Фильтр: Комедия И 2020 год
         List<Film> popularComedy2020 = filmStorage.getPopular(10, 1L, 2020);
         assertThat(popularComedy2020).hasSize(1);
         assertThat(popularComedy2020.get(0).getId()).isEqualTo(saved2.getId());
     }
 
-    // Остальные твои тесты (testAddWithGenres, testFindById, testUpdate и т.д.)
-    // можно оставить как есть, они не мешают.
-    @Test
-    void testFindByIdWithGenresAndLikes() {
-        Film film = createFilm("FullFilm");
-        Genre g = new Genre();
-        g.setId(1L);
-        film.setGenres(new HashSet<>(Set.of(g)));
-        Film saved = filmStorage.add(film);
-
-        User user = createUser("liker");
-        filmStorage.addLike(saved.getId(), user.getId());
-
-        Optional<Film> found = filmStorage.findById(saved.getId());
-        assertThat(found).isPresent();
-        assertThat(found.get().getGenres()).hasSize(1);
-        assertThat(found.get().getLikes()).hasSize(1);
-    }
-
-    @Test
-    void testAddWithDirectors() {
-        Director d1 = createDirector("Director 1");
-        Director d2 = createDirector("Director 2");
-
-        Film film = createFilm("WithDirectors");
-        film.setDirectors(new HashSet<>(List.of(d1, d2)));
-
-        Film saved = filmStorage.add(film);
-
-        assertThat(saved.getId()).isNotNull();
-        assertThat(saved.getDirectors()).hasSize(2);
-        assertThat(saved.getDirectors()).extracting(Director::getId).containsExactlyInAnyOrder(d1.getId(), d2.getId());
-    }
-
-    @Test
-    void testFindByIdWithDirectors() {
-        Director d = createDirector("Director");
-        Film film = createFilm("WithDirectors");
-        film.setDirectors(new HashSet<>(Set.of(d)));
-        Film saved = filmStorage.add(film);
-
-        Optional<Film> found = filmStorage.findById(saved.getId());
-        assertThat(found).isPresent();
-        assertThat(found.get().getDirectors()).hasSize(1);
-        assertThat(found.get().getDirectors().iterator().next().getId()).isEqualTo(d.getId());
-    }
-
-    @Test
-    void testUpdateDirectors() {
-        Director d1 = createDirector("Director 1");
-        Film film = createFilm("WithDirectors");
-        film.setDirectors(new HashSet<>(List.of(d1)));
-        Film saved = filmStorage.add(film);
-
-        Director d2 = createDirector("Director 2");
-        saved.setDirectors(new HashSet<>(List.of(d2)));
-        filmStorage.update(saved);
-
-        Optional<Film> found = filmStorage.findById(saved.getId());
-        assertThat(found).isPresent();
-        assertThat(found.get().getDirectors()).hasSize(1);
-        assertThat(found.get().getDirectors()).extracting(Director::getId).containsExactly(d2.getId());
-    }
-
-    @Test
-    void testGetFilmsByDirectorSortByYear() {
-        Director director = createDirector("Director");
-
-        Film film1 = createFilm("Film2020");
-        film1.setReleaseDate(LocalDate.of(2020, 1, 1));
-        film1.setDirectors(new HashSet<>(Set.of(director)));
-        Film saved1 = filmStorage.add(film1);
-
-        Film film2 = createFilm("Film2010");
-        film2.setReleaseDate(LocalDate.of(2010, 1, 1));
-        film2.setDirectors(new HashSet<>(Set.of(director)));
-        Film saved2 = filmStorage.add(film2);
-
-        List<Film> result = filmStorage.getFilmsByDirector(director.getId(), "year");
-
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).getReleaseDate()).isBefore(result.get(1).getReleaseDate());
-    }
-
     @Test
     void testGetFilmsByDirectorSortByLikes() {
-        Director director = createDirector("Director");
+        Director d = createDirector("Нолан");
 
-        Film film1 = createFilm("Popular");
-        film1.setDirectors(new HashSet<>(Set.of(director)));
+        Film film1 = createFilm("Интерстеллар");
+        film1.setDirectors(Set.of(d));
         Film saved1 = filmStorage.add(film1);
 
-        Film film2 = createFilm("NotPopular");
-        film2.setDirectors(new HashSet<>(Set.of(director)));
+        Film film2 = createFilm("Довод");
+        film2.setDirectors(Set.of(d));
         Film saved2 = filmStorage.add(film2);
 
         User u1 = createUser("u1");
         User u2 = createUser("u2");
+
         filmStorage.addLike(saved1.getId(), u1.getId());
         filmStorage.addLike(saved1.getId(), u2.getId());
         filmStorage.addLike(saved2.getId(), u1.getId());
 
-        List<Film> result = filmStorage.getFilmsByDirector(director.getId(), "likes");
+        List<Film> films = filmStorage.getFilmsByDirector(d.getId(), "likes");
 
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).getLikes()).hasSize(2);
-        assertThat(result.get(1).getLikes()).hasSize(1);
+        assertThat(films).hasSize(2);
+        assertThat(films.get(0).getId()).isEqualTo(saved1.getId()); // Больше лайков
+        assertThat(films.get(1).getId()).isEqualTo(saved2.getId());
+    }
+
+    @Test
+    void testGetFilmsByDirectorSortByYear() {
+        Director d = createDirector("Спилберг");
+
+        Film film1 = createFilm("Парк юрского периода");
+        film1.setReleaseDate(LocalDate.of(1993, 6, 11));
+        film1.setDirectors(Set.of(d));
+        Film saved1 = filmStorage.add(film1);
+
+        Film film2 = createFilm("Парк юрского периода 2");
+        film2.setReleaseDate(LocalDate.of(1997, 5, 23));
+        film2.setDirectors(Set.of(d));
+        Film saved2 = filmStorage.add(film2);
+
+        List<Film> films = filmStorage.getFilmsByDirector(d.getId(), "year");
+
+        assertThat(films).hasSize(2);
+        assertThat(films.get(0).getId()).isEqualTo(saved1.getId()); // 1993 год
+        assertThat(films.get(1).getId()).isEqualTo(saved2.getId()); // 1997 год
     }
 }
