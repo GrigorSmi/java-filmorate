@@ -8,6 +8,7 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MpaRating;
@@ -67,6 +68,21 @@ public class FilmDbStorage implements FilmStorage {
                 }
         );
 
+        Map<Long, Set<Director>> directorsByFilm = new HashMap<>();
+        jdbc.query(
+                "SELECT fd.film_id, d.id, d.name FROM film_directors fd " +
+                        "JOIN directors d ON fd.director_id = d.id " +
+                        "WHERE fd.film_id IN (" + inClause + ") ORDER BY d.id",
+                (rs, rowNum) -> {
+                    long filmId = rs.getLong("film_id");
+                    Director director = new Director();
+                    director.setId(rs.getLong("id"));
+                    director.setName(rs.getString("name"));
+                    directorsByFilm.computeIfAbsent(filmId, k -> new LinkedHashSet<>()).add(director);
+                    return null;
+                }
+        );
+
         Map<Long, Set<Long>> likesByFilm = new HashMap<>();
         jdbc.query(
                 "SELECT film_id, user_id FROM likes WHERE film_id IN (" + inClause + ")",
@@ -79,6 +95,7 @@ public class FilmDbStorage implements FilmStorage {
 
         for (Film film : films) {
             film.setGenres(genresByFilm.getOrDefault(film.getId(), new LinkedHashSet<>()));
+            film.setDirectors(directorsByFilm.getOrDefault(film.getId(), new LinkedHashSet<>()));
             film.setLikes(likesByFilm.getOrDefault(film.getId(), new HashSet<>()));
         }
     }
@@ -123,6 +140,12 @@ public class FilmDbStorage implements FilmStorage {
             }
         }
 
+        if (film.getDirectors() != null) {
+            for (Director director : film.getDirectors()) {
+                jdbc.update("INSERT INTO film_directors (film_id, director_id) VALUES (?, ?)", film.getId(), director.getId());
+            }
+        }
+
         if (film.getMpa() != null && film.getMpa().getName() == null) {
             film.getMpa().setName(loadMpaName(film.getMpa().getId()));
         }
@@ -149,6 +172,13 @@ public class FilmDbStorage implements FilmStorage {
         if (film.getGenres() != null) {
             for (Genre genre : film.getGenres()) {
                 jdbc.update("INSERT INTO film_genres (film_id, genre_id) VALUES (?, ?)", film.getId(), genre.getId());
+            }
+        }
+
+        jdbc.update("DELETE FROM film_directors WHERE film_id = ?", film.getId());
+        if (film.getDirectors() != null) {
+            for (Director director : film.getDirectors()) {
+                jdbc.update("INSERT INTO film_directors (film_id, director_id) VALUES (?, ?)", film.getId(), director.getId());
             }
         }
 
@@ -192,6 +222,7 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public void clearAll() {
         jdbc.update("DELETE FROM likes");
+        jdbc.update("DELETE FROM film_directors");
         jdbc.update("DELETE FROM film_genres");
         jdbc.update("DELETE FROM films");
     }
@@ -216,6 +247,29 @@ public class FilmDbStorage implements FilmStorage {
                         "ORDER BY COUNT(l.user_id) DESC, f.id " +
                         "LIMIT ?",
                 filmRowMapper, count
+        );
+        enrichFilms(films);
+        return films;
+    }
+
+    public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
+        String orderClause;
+        if ("likes".equals(sortBy)) {
+            orderClause = "COUNT(l.user_id) DESC, f.id";
+        } else {
+            orderClause = "f.release_date ASC, f.id";
+        }
+
+        List<Film> films = jdbc.query(
+                "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name AS mpa_name " +
+                        "FROM films f " +
+                        "JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
+                        "JOIN film_directors fd ON f.id = fd.film_id " +
+                        "LEFT JOIN likes l ON f.id = l.film_id " +
+                        "WHERE fd.director_id = ? " +
+                        "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name " +
+                        "ORDER BY " + orderClause,
+                filmRowMapper, directorId
         );
         enrichFilms(films);
         return films;
