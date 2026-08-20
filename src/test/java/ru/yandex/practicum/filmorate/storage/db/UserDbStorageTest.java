@@ -7,6 +7,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Transactional; // <-- 1. ДОБАВЛЕНО: для изоляции тестов
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
@@ -17,8 +18,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @JdbcTest
 @AutoConfigureTestDatabase
 @Import(UserDbStorage.class)
+@Transactional // <-- 2. ДОБАВЛЕНО: автоматически откатывает изменения в БД после каждого теста
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 class UserDbStorageTest {
+
     private final UserDbStorage userStorage;
     private final JdbcTemplate jdbc;
 
@@ -57,12 +60,12 @@ class UserDbStorageTest {
     @Test
     void testFindByIdNotFound() {
         Optional<User> found = userStorage.findById(9999L);
-
         assertThat(found).isEmpty();
     }
 
     @Test
     void testFindAll() {
+        // Очищаем перед проверкой размера, чтобы тест был стабильным
         jdbc.update("DELETE FROM users");
         userStorage.add(createUser("login_a", "a@mail.com"));
         userStorage.add(createUser("login_b", "b@mail.com"));

@@ -62,9 +62,13 @@ public class FilmController {
         filmService.removeLike(id, userId);
     }
 
+    // ЕДИНСТВЕННЫЙ метод для получения популярных фильмов с поддержкой фильтров
     @GetMapping("/popular")
-    public List<Film> getPopular(@RequestParam(defaultValue = "10") int count) {
-        log.info("Запрос популярных фильмов: count={}", count);
-        return filmService.getPopular(count);
+    public List<Film> getPopular(
+            @RequestParam(defaultValue = "10") int count,
+            @RequestParam(required = false) Long genreId,
+            @RequestParam(required = false) Integer year) {
+        log.info("Запрос популярных фильмов: count={}, genreId={}, year={}", count, genreId, year);
+        return filmService.getPopular(count, genreId, year);
     }
 }

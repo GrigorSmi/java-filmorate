@@ -77,16 +77,13 @@ public class FilmService {
         filmStorage.removeLike(filmId, userId);
     }
 
-    public List<Film> getPopular(int count) {
+    // Универсальный метод, который делегирует вызов в конкретную реализацию хранилища
+    public List<Film> getPopular(int count, Long genreId, Integer year) {
+        // Если используется реализация для БД, вызываем её оптимизированный метод
         if (filmStorage instanceof FilmDbStorage dbStorage) {
-            return dbStorage.getPopular(count);
+            return dbStorage.getPopular(count, genreId, year);
         }
-        return filmStorage.findAll().stream()
-                .sorted((a, b) -> {
-                    int cmp = Integer.compare(b.getLikes().size(), a.getLikes().size());
-                    return cmp != 0 ? cmp : Long.compare(a.getId(), b.getId());
-                })
-                .limit(count)
-                .toList();
+        // Иначе вызываем метод из интерфейса (например, для InMemory реализации)
+        return filmStorage.getPopular(count, genreId, year);
     }
 }

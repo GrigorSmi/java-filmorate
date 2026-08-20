@@ -8,8 +8,8 @@ import ru.yandex.practicum.filmorate.model.Film;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Slf4j
 @Component
@@ -47,8 +47,8 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     @Override
-    public Optional<Film> findById(Long id) {
-        return Optional.ofNullable(films.get(id));
+    public java.util.Optional<Film> findById(Long id) {
+        return java.util.Optional.ofNullable(films.get(id));
     }
 
     @Override
@@ -81,5 +81,24 @@ public class InMemoryFilmStorage implements FilmStorage {
         } else {
             log.info("Пользователь {} убрал лайк с фильма {}", userId, filmId);
         }
+    }
+
+    @Override
+    public List<Film> getPopular(int count, Long genreId, Integer year) {
+        return films.values().stream()
+                // Фильтр по жанру (если передан)
+                .filter(film -> genreId == null ||
+                        (film.getGenres() != null && film.getGenres().stream()
+                                .anyMatch(g -> g.getId().equals(genreId))))
+                // Фильтр по году (если передан)
+                .filter(film -> year == null ||
+                        (film.getReleaseDate() != null && film.getReleaseDate().getYear() == year))
+                // Сортировка: сначала по убыванию лайков, потом по возрастанию ID
+                .sorted((a, b) -> {
+                    int cmp = Integer.compare(b.getLikes().size(), a.getLikes().size());
+                    return cmp != 0 ? cmp : Long.compare(a.getId(), b.getId());
+                })
+                .limit(count)
+                .toList();
     }
 }
