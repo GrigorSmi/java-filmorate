@@ -8,6 +8,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MpaRating;
@@ -20,19 +21,28 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @JdbcTest
 @AutoConfigureTestDatabase
-@Import({FilmDbStorage.class, UserDbStorage.class})
+@Import({FilmDbStorage.class, UserDbStorage.class, DirectorDbStorage.class})
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 class FilmDbStorageTest {
     private final FilmDbStorage filmStorage;
     private final UserDbStorage userStorage;
+    private final DirectorDbStorage directorStorage;
     private final JdbcTemplate jdbc;
 
     @BeforeEach
     void setUp() {
         jdbc.update("DELETE FROM likes");
+        jdbc.update("DELETE FROM film_directors");
         jdbc.update("DELETE FROM film_genres");
         jdbc.update("DELETE FROM films");
         jdbc.update("DELETE FROM users");
+        jdbc.update("DELETE FROM directors");
+    }
+
+    private Director createDirector(String name) {
+        Director director = new Director();
+        director.setName(name);
+        return directorStorage.add(director);
     }
 
     private Film createFilm(String name) {
@@ -135,4 +145,110 @@ class FilmDbStorageTest {
 
     // Остальные твои тесты (testAddWithGenres, testFindById, testUpdate и т.д.)
     // можно оставить как есть, они не мешают.
+    @Test
+    void testFindByIdWithGenresAndLikes() {
+        Film film = createFilm("FullFilm");
+        Genre g = new Genre();
+        g.setId(1L);
+        film.setGenres(new HashSet<>(Set.of(g)));
+        Film saved = filmStorage.add(film);
+
+        User user = createUser("liker");
+        filmStorage.addLike(saved.getId(), user.getId());
+
+        Optional<Film> found = filmStorage.findById(saved.getId());
+        assertThat(found).isPresent();
+        assertThat(found.get().getGenres()).hasSize(1);
+        assertThat(found.get().getLikes()).hasSize(1);
+    }
+
+    @Test
+    void testAddWithDirectors() {
+        Director d1 = createDirector("Director 1");
+        Director d2 = createDirector("Director 2");
+
+        Film film = createFilm("WithDirectors");
+        film.setDirectors(new HashSet<>(List.of(d1, d2)));
+
+        Film saved = filmStorage.add(film);
+
+        assertThat(saved.getId()).isNotNull();
+        assertThat(saved.getDirectors()).hasSize(2);
+        assertThat(saved.getDirectors()).extracting(Director::getId).containsExactlyInAnyOrder(d1.getId(), d2.getId());
+    }
+
+    @Test
+    void testFindByIdWithDirectors() {
+        Director d = createDirector("Director");
+        Film film = createFilm("WithDirectors");
+        film.setDirectors(new HashSet<>(Set.of(d)));
+        Film saved = filmStorage.add(film);
+
+        Optional<Film> found = filmStorage.findById(saved.getId());
+        assertThat(found).isPresent();
+        assertThat(found.get().getDirectors()).hasSize(1);
+        assertThat(found.get().getDirectors().iterator().next().getId()).isEqualTo(d.getId());
+    }
+
+    @Test
+    void testUpdateDirectors() {
+        Director d1 = createDirector("Director 1");
+        Film film = createFilm("WithDirectors");
+        film.setDirectors(new HashSet<>(List.of(d1)));
+        Film saved = filmStorage.add(film);
+
+        Director d2 = createDirector("Director 2");
+        saved.setDirectors(new HashSet<>(List.of(d2)));
+        filmStorage.update(saved);
+
+        Optional<Film> found = filmStorage.findById(saved.getId());
+        assertThat(found).isPresent();
+        assertThat(found.get().getDirectors()).hasSize(1);
+        assertThat(found.get().getDirectors()).extracting(Director::getId).containsExactly(d2.getId());
+    }
+
+    @Test
+    void testGetFilmsByDirectorSortByYear() {
+        Director director = createDirector("Director");
+
+        Film film1 = createFilm("Film2020");
+        film1.setReleaseDate(LocalDate.of(2020, 1, 1));
+        film1.setDirectors(new HashSet<>(Set.of(director)));
+        Film saved1 = filmStorage.add(film1);
+
+        Film film2 = createFilm("Film2010");
+        film2.setReleaseDate(LocalDate.of(2010, 1, 1));
+        film2.setDirectors(new HashSet<>(Set.of(director)));
+        Film saved2 = filmStorage.add(film2);
+
+        List<Film> result = filmStorage.getFilmsByDirector(director.getId(), "year");
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getReleaseDate()).isBefore(result.get(1).getReleaseDate());
+    }
+
+    @Test
+    void testGetFilmsByDirectorSortByLikes() {
+        Director director = createDirector("Director");
+
+        Film film1 = createFilm("Popular");
+        film1.setDirectors(new HashSet<>(Set.of(director)));
+        Film saved1 = filmStorage.add(film1);
+
+        Film film2 = createFilm("NotPopular");
+        film2.setDirectors(new HashSet<>(Set.of(director)));
+        Film saved2 = filmStorage.add(film2);
+
+        User u1 = createUser("u1");
+        User u2 = createUser("u2");
+        filmStorage.addLike(saved1.getId(), u1.getId());
+        filmStorage.addLike(saved1.getId(), u2.getId());
+        filmStorage.addLike(saved2.getId(), u1.getId());
+
+        List<Film> result = filmStorage.getFilmsByDirector(director.getId(), "likes");
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getLikes()).hasSize(2);
+        assertThat(result.get(1).getLikes()).hasSize(1);
+    }
 }
