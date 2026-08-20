@@ -1,12 +1,1 @@
-MERGE INTO mpa_ratings (id, name) KEY (id) VALUES (1, 'G');
-MERGE INTO mpa_ratings (id, name) KEY (id) VALUES (2, 'PG');
-MERGE INTO mpa_ratings (id, name) KEY (id) VALUES (3, 'PG-13');
-MERGE INTO mpa_ratings (id, name) KEY (id) VALUES (4, 'R');
-MERGE INTO mpa_ratings (id, name) KEY (id) VALUES (5, 'NC-17');
-
-MERGE INTO genres (id, name) KEY (id) VALUES (1, 'äÆ¨•§®Ô');
-MERGE INTO genres (id, name) KEY (id) VALUES (2, 'Ñ‡†¨†');
-MERGE INTO genres (id, name) KEY (id) VALUES (3, 'å„´Ï‚‰®´Ï¨');
-MERGE INTO genres (id, name) KEY (id) VALUES (4, 'í‡®´´•‡');
-MERGE INTO genres (id, name) KEY (id) VALUES (5, 'ÑÆ™„¨•≠‚†´Ï≠Î©');
-MERGE INTO genres (id, name) KEY (id) VALUES (6, 'ÅÆ•¢®™');
+MERGE INTO mpa_ratings (id, name) KEY (id) VALUES (1, 'G');MERGE INTO mpa_ratings (id, name) KEY (id) VALUES (2, 'PG');MERGE INTO mpa_ratings (id, name) KEY (id) VALUES (3, 'PG-13');MERGE INTO mpa_ratings (id, name) KEY (id) VALUES (4, 'R');MERGE INTO mpa_ratings (id, name) KEY (id) VALUES (5, 'NC-17');MERGE INTO genres (id, name) KEY (id) VALUES (1, '–ö–æ–º–µ–¥–∏—è');MERGE INTO genres (id, name) KEY (id) VALUES (2, '–î—Ä–∞–º–∞');MERGE INTO genres (id, name) KEY (id) VALUES (3, '–ú—É–ª—å—Ç—Ñ–∏–ª—å–º');MERGE INTO genres (id, name) KEY (id) VALUES (4, '–¢—Ä–∏–ª–ª–µ—Ä');MERGE INTO genres (id, name) KEY (id) VALUES (5, '–î–æ–∫—É–º–µ–Ω—Ç–∞–ª—å–Ω—ã–π');MERGE INTO genres (id, name) KEY (id) VALUES (6, '–ë–æ–µ–≤–∏–∫');
