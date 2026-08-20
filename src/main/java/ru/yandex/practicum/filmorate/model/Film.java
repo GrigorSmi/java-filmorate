@@ -47,6 +47,14 @@ public class Film {
     )
     private Set<Genre> genres = new HashSet<>();
 
+    @ManyToMany
+    @JoinTable(
+        name = "film_directors",
+        joinColumns = @JoinColumn(name = "film_id"),
+        inverseJoinColumns = @JoinColumn(name = "director_id")
+    )
+    private Set<Director> directors = new HashSet<>();
+
     @ManyToOne
     @JoinColumn(name = "mpa_rating_id")
     @NotNull(message = "Рейтинг MPA обязателен")

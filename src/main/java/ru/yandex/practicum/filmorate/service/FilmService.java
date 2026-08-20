@@ -9,8 +9,6 @@ import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 import ru.yandex.practicum.filmorate.storage.db.FilmDbStorage;
-import ru.yandex.practicum.filmorate.storage.db.GenreDbStorage;
-import ru.yandex.practicum.filmorate.storage.db.MpaRatingDbStorage;
 
 import java.util.Collection;
 import java.util.List;
@@ -20,28 +18,34 @@ import java.util.List;
 public class FilmService {
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
-    private final MpaRatingDbStorage mpaStorage;
-    private final GenreDbStorage genreStorage;
+    private final MpaRatingService mpaService;
+    private final GenreService genreService;
+    private final DirectorService directorService;
 
     public FilmService(@Qualifier("db") FilmStorage filmStorage,
                        @Qualifier("db") UserStorage userStorage,
-                       MpaRatingDbStorage mpaStorage,
-                       GenreDbStorage genreStorage) {
+                       MpaRatingService mpaService,
+                       GenreService genreService,
+                       DirectorService directorService) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
-        this.mpaStorage = mpaStorage;
-        this.genreStorage = genreStorage;
+        this.mpaService = mpaService;
+        this.genreService = genreService;
+        this.directorService = directorService;
     }
 
     private void validateFilmReferences(Film film) {
         if (film.getMpa() != null) {
-            mpaStorage.findById(film.getMpa().getId())
-                    .orElseThrow(() -> new NotFoundException("Рейтинг MPA с id=" + film.getMpa().getId() + " не найден"));
+            mpaService.findById(film.getMpa().getId());
         }
         if (film.getGenres() != null) {
             for (Genre genre : film.getGenres()) {
-                genreStorage.findById(genre.getId())
-                        .orElseThrow(() -> new NotFoundException("Жанр с id=" + genre.getId() + " не найден"));
+                genreService.findById(genre.getId());
+            }
+        }
+        if (film.getDirectors() != null) {
+            for (var director : film.getDirectors()) {
+                directorService.findById(director.getId());
             }
         }
     }
@@ -85,5 +89,13 @@ public class FilmService {
         }
         // Иначе вызываем метод из интерфейса (например, для InMemory реализации)
         return filmStorage.getPopular(count, genreId, year);
+    }
+
+    public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
+        directorService.findById(directorId);
+        if (filmStorage instanceof FilmDbStorage dbStorage) {
+            return dbStorage.getFilmsByDirector(directorId, sortBy);
+        }
+        return List.of();
     }
 }
