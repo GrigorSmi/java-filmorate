@@ -101,4 +101,8 @@ public class FilmService {
         }
         return List.of();
     }
+
+    public List<Film> search(String query, String by) {
+        return filmStorage.search(query, by);
+    }
 }
