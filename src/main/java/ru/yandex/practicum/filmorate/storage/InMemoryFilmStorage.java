@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.model.Film;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -81,5 +82,16 @@ public class InMemoryFilmStorage implements FilmStorage {
         } else {
             log.info("Пользователь {} убрал лайк с фильма {}", userId, filmId);
         }
+    }
+
+    @Override
+    public List<Film> getCommonFilms(Long userId, Long friendId) {
+        return films.values().stream()
+                .filter(f -> f.getLikes() != null && f.getLikes().contains(userId) && f.getLikes().contains(friendId))
+                .sorted((a, b) -> {
+                    int cmp = Integer.compare(b.getLikes().size(), a.getLikes().size());
+                    return cmp != 0 ? cmp : Long.compare(a.getId(), b.getId());
+                })
+                .toList();
     }
 }
