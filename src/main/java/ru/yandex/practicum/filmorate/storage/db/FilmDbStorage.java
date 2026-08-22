@@ -281,11 +281,11 @@ public class FilmDbStorage implements FilmStorage {
                 "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name AS mpa_name " +
                         "FROM films f " +
                         "JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
-                        "WHERE f.id IN (" +
+                        "JOIN ( " +
                         "  SELECT l1.film_id FROM likes l1 " +
                         "  JOIN likes l2 ON l1.film_id = l2.film_id " +
-                        "  WHERE l1.user_id = ? AND l2.user_id = ?" +
-                        ") " +
+                        "  WHERE l1.user_id = ? AND l2.user_id = ? " +
+                        ") common ON f.id = common.film_id " +
                         "LEFT JOIN likes l ON f.id = l.film_id " +
                         "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name " +
                         "ORDER BY COUNT(DISTINCT l.user_id) DESC, f.id",
