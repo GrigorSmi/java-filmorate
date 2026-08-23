@@ -115,7 +115,7 @@ public class FilmService {
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + friendId + " не найден"));
         return filmStorage.getCommonFilms(userId, friendId);
     }
-    
+
     public List<Film> search(String query, String by) {
         return filmStorage.search(query, by);
     }
