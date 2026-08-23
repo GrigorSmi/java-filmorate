@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 class FilmControllerTest {
+
     @Autowired
     private FilmController controller;
 
@@ -31,8 +32,11 @@ class FilmControllerTest {
     @BeforeEach
     void setUp() {
         jdbc.update("DELETE FROM likes");
+        jdbc.update("DELETE FROM film_directors");
         jdbc.update("DELETE FROM film_genres");
         jdbc.update("DELETE FROM films");
+        jdbc.update("DELETE FROM directors");
+        jdbc.update("DELETE FROM users");
     }
 
     private Film createTestFilm() {
@@ -122,8 +126,14 @@ class FilmControllerTest {
         Film film = createTestFilm();
         Film created = controller.create(film);
 
-        controller.findById(created.getId());
-        assertTrue(controller.findById(created.getId()) != null);
+        controller.delete(created.getId());
+
+        assertThrows(NotFoundException.class, () -> controller.findById(created.getId()));
+    }
+
+    @Test
+    void delete_shouldThrowWhenFilmNotFound() {
+        assertThrows(NotFoundException.class, () -> controller.delete(999L));
     }
 
     @Test

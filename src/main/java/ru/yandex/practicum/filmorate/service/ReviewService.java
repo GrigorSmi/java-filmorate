@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.service;
 
+import jakarta.validation.ValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -27,8 +28,19 @@ public class ReviewService {
     }
 
     public Review create(Review review) {
-        userStorage.findById(review.getUserId()).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
-        filmStorage.findById(review.getFilmId()).orElseThrow(() -> new NotFoundException("Фильм не найден"));
+        // 1. Явная проверка на null (вернет 400 Bad Request)
+        if (review.getUserId() == null) {
+            throw new ValidationException("ID пользователя не может быть пустым");
+        }
+        if (review.getFilmId() == null) {
+            throw new ValidationException("ID фильма не может быть пустым");
+        }
+
+        // 2. Дальше твои обычные проверки, что пользователь и фильм существуют (вернут 404, если их нет в БД)
+        userStorage.findById(review.getUserId()); // или userStorage.findById(...)
+        filmStorage.findById(review.getFilmId()); // или filmStorage.findById(...)
+
+        log.info("Создание отзыва: {}", review);
         return reviewStorage.create(review);
     }
 

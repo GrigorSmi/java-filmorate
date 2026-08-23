@@ -24,8 +24,9 @@ public interface FilmStorage {
 
     void removeLike(Long filmId, Long userId);
 
-
     List<Film> getPopular(int count, Long genreId, Integer year);
 
-    List<Film> getFilmsByDirector(Long directorId, String sortBy);
+    List<Film> getFilmsByDirector(Long directorId, String sortBy); // <-- ЭТО БЫЛО ПРОПУЩЕНО
+
+    List<Film> search(String query, String by);
 }

@@ -39,7 +39,7 @@ public class UserService {
             user.setName(user.getLogin());
             log.debug("Имя пользователя пустое, будет использован логин: {}", user.getLogin());
         }
-        return userStorage.add(user);//локально верно
+        return userStorage.add(user);
     }
 
     public User update(User user) {
@@ -57,6 +57,13 @@ public class UserService {
     public User findById(Long id) {
         return userStorage.findById(id)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
+    }
+
+    public void delete(Long id) {
+        log.info("Удаление пользователя с id={}", id);
+        userStorage.findById(id)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
+        userStorage.delete(id);
     }
 
     public void addFriend(Long userId, Long friendId) {
@@ -97,8 +104,8 @@ public class UserService {
 
         return jdbc.query(
                 "SELECT u.id, u.email, u.login, u.name, u.birthday " +
-                "FROM users u JOIN friendships f ON u.id = f.friend_id " +
-                "WHERE f.user_id = ? ORDER BY u.id",
+                        "FROM users u JOIN friendships f ON u.id = f.friend_id " +
+                        "WHERE f.user_id = ? ORDER BY u.id",
                 userRowMapper, userId
         );
     }
@@ -111,10 +118,10 @@ public class UserService {
 
         return jdbc.query(
                 "SELECT u.id, u.email, u.login, u.name, u.birthday " +
-                "FROM users u " +
-                "JOIN friendships f1 ON u.id = f1.friend_id AND f1.user_id = ? " +
-                "JOIN friendships f2 ON u.id = f2.friend_id AND f2.user_id = ? " +
-                "ORDER BY u.id",
+                        "FROM users u " +
+                        "JOIN friendships f1 ON u.id = f1.friend_id AND f1.user_id = ? " +
+                        "JOIN friendships f2 ON u.id = f2.friend_id AND f2.user_id = ? " +
+                        "ORDER BY u.id",
                 userRowMapper, userId, otherId
         );
     }
