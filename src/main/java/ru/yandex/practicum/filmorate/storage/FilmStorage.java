@@ -24,5 +24,6 @@ public interface FilmStorage {
     void removeLike(Long filmId, Long userId);
 
     List<Film> getCommonFilms(Long userId, Long friendId);
+
     List<Film> search(String query, String by);
 }

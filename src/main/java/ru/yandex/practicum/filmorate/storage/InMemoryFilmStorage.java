@@ -95,6 +95,9 @@ public class InMemoryFilmStorage implements FilmStorage {
                     return cmp != 0 ? cmp : Long.compare(a.getId(), b.getId());
                 })
                 .toList();
+    }
+
+    @Override
     public List<Film> search(String query, String by) {
         String lowerQuery = query.toLowerCase();
         boolean searchTitle = by.contains("title");

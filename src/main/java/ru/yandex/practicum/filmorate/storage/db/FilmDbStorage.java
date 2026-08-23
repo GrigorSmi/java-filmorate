@@ -291,6 +291,11 @@ public class FilmDbStorage implements FilmStorage {
                         "ORDER BY COUNT(DISTINCT l.user_id) DESC, f.id",
                 filmRowMapper, userId, friendId
         );
+        enrichFilms(films);
+        return films;
+    }
+
+    @Override
     public List<Film> search(String query, String by) {
         String likePattern = "%" + query.toLowerCase() + "%";
         String sql;
