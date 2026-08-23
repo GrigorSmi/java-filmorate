@@ -87,6 +87,17 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     @Override
+    public List<Film> getCommonFilms(Long userId, Long friendId) {
+        return films.values().stream()
+                .filter(f -> f.getLikes() != null && f.getLikes().contains(userId) && f.getLikes().contains(friendId))
+                .sorted((a, b) -> {
+                    int cmp = Integer.compare(b.getLikes().size(), a.getLikes().size());
+                    return cmp != 0 ? cmp : Long.compare(a.getId(), b.getId());
+                })
+                .toList();
+    }
+
+    @Override
     public List<Film> search(String query, String by) {
         String lowerQuery = query.toLowerCase();
         boolean searchTitle = by.contains("title");
