@@ -94,6 +94,12 @@ public class FilmService {
                 .toList();
     }
 
+    public void delete(Long id) {
+        filmStorage.findById(id)
+                .orElseThrow(() -> new NotFoundException("Фильм с id=" + id + " не найден"));
+        filmStorage.delete(id);
+    }
+
     public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
         directorService.findById(directorId);
         if (filmStorage instanceof FilmDbStorage dbStorage) {
