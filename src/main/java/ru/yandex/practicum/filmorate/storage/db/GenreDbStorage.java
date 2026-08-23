@@ -1,6 +1,9 @@
 package ru.yandex.practicum.filmorate.storage.db;
 
+<<<<<<< HEAD
 import org.springframework.beans.factory.annotation.Qualifier;
+=======
+>>>>>>> develop
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -11,10 +14,15 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
+<<<<<<< HEAD
 @Qualifier("db")
 public class GenreDbStorage implements GenreStorage {
     private final JdbcTemplate jdbc;
 
+=======
+public class GenreDbStorage implements GenreStorage {
+    private final JdbcTemplate jdbc;
+>>>>>>> develop
     private final RowMapper<Genre> genreRowMapper = (rs, rowNum) -> {
         Genre genre = new Genre();
         genre.setId(rs.getLong("id"));
@@ -36,4 +44,8 @@ public class GenreDbStorage implements GenreStorage {
         List<Genre> result = jdbc.query("SELECT id, name FROM genres WHERE id = ?", genreRowMapper, id);
         return result.stream().findFirst();
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> develop

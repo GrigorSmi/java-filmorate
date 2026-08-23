@@ -41,6 +41,7 @@ public class Film {
 
     @ManyToMany
     @JoinTable(
+<<<<<<< HEAD
             name = "film_genres",
             joinColumns = @JoinColumn(name = "film_id"),
             inverseJoinColumns = @JoinColumn(name = "genre_id")
@@ -48,6 +49,20 @@ public class Film {
     private Set<Genre> genres = new HashSet<>();
 
     @Transient
+=======
+        name = "film_genres",
+        joinColumns = @JoinColumn(name = "film_id"),
+        inverseJoinColumns = @JoinColumn(name = "genre_id")
+    )
+    private Set<Genre> genres = new HashSet<>();
+
+    @ManyToMany
+    @JoinTable(
+        name = "film_directors",
+        joinColumns = @JoinColumn(name = "film_id"),
+        inverseJoinColumns = @JoinColumn(name = "director_id")
+    )
+>>>>>>> develop
     private Set<Director> directors = new HashSet<>();
 
     @ManyToOne
@@ -57,4 +72,8 @@ public class Film {
 
     @Transient
     private Set<Long> likes = new HashSet<>();
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> develop

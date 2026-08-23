@@ -6,8 +6,15 @@ import java.util.List;
 import java.util.Optional;
 
 public interface GenreStorage {
+<<<<<<< HEAD
 
     List<Genre> findAll();
 
     Optional<Genre> findById(Long id);
 }
+=======
+    List<Genre> findAll();
+
+    Optional<Genre> findById(Long id);
+}
+>>>>>>> develop

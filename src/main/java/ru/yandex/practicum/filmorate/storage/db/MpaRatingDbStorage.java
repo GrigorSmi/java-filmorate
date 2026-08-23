@@ -1,6 +1,9 @@
 package ru.yandex.practicum.filmorate.storage.db;
 
+<<<<<<< HEAD
 import org.springframework.beans.factory.annotation.Qualifier;
+=======
+>>>>>>> develop
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -11,10 +14,15 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
+<<<<<<< HEAD
 @Qualifier("db")
 public class MpaRatingDbStorage implements MpaRatingStorage {
     private final JdbcTemplate jdbc;
 
+=======
+public class MpaRatingDbStorage implements MpaRatingStorage {
+    private final JdbcTemplate jdbc;
+>>>>>>> develop
     private final RowMapper<MpaRating> mpaRowMapper = (rs, rowNum) -> {
         MpaRating mpa = new MpaRating();
         mpa.setId(rs.getLong("id"));
@@ -36,4 +44,8 @@ public class MpaRatingDbStorage implements MpaRatingStorage {
         List<MpaRating> result = jdbc.query("SELECT id, name FROM mpa_ratings WHERE id = ?", mpaRowMapper, id);
         return result.stream().findFirst();
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> develop
