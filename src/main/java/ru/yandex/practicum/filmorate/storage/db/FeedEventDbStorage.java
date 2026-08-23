@@ -18,7 +18,8 @@ public class FeedEventDbStorage extends BaseDbStorage<FeedEvent> implements Feed
     private static final String FIND_BY_USER_ID_QUERY = """
             SELECT id, user_id, event_type, operation, entity_id, timestamp
             FROM events
-            WHERE user_id = ?;""";
+            WHERE user_id = ?
+            ORDER BY timestamp DESC;""";
     private static final String DELETE_BY_TYPE_AND_ENTITY_ID_QUERY = """
             DELETE
             FROM events

@@ -8,6 +8,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.enums.FeedEventOperation;
 import ru.yandex.practicum.filmorate.enums.FeedEventType;
+import ru.yandex.practicum.filmorate.exception.FeedEventException;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.FeedEvent;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.MpaRating;
@@ -16,7 +18,10 @@ import ru.yandex.practicum.filmorate.model.User;
 import java.time.LocalDate;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 @AutoConfigureTestDatabase
@@ -49,18 +54,18 @@ class FeedEventServiceTest {
         userService.addFriend(user.getId(), user1.getId());
 
         List<FeedEvent> afterAdd = feedEventService.findByUserId(user.getId());
-        assertThat(afterAdd)
+        assertTrue(afterAdd.stream()
                 .anyMatch(e -> e.getEventType() == FeedEventType.FRIEND
                         && e.getOperation() == FeedEventOperation.ADD
-                        && e.getEntityId().equals(user1.getId()));
+                        && e.getEntityId().equals(user1.getId())));
 
         userService.removeFriend(user.getId(), user1.getId());
 
         List<FeedEvent> afterRemove = feedEventService.findByUserId(user.getId());
-        assertThat(afterRemove)
+        assertTrue(afterRemove.stream()
                 .anyMatch(e -> e.getEventType() == FeedEventType.FRIEND
                         && e.getOperation() == FeedEventOperation.REMOVE
-                        && e.getEntityId().equals(user1.getId()));
+                        && e.getEntityId().equals(user1.getId())));
     }
 
     @Test
@@ -71,31 +76,31 @@ class FeedEventServiceTest {
         filmService.addLike(film.getId(), user1.getId());
 
         List<FeedEvent> userLikes = feedEventService.findByUserId(user.getId());
-        assertThat(userLikes)
+        assertTrue(userLikes.stream()
                 .anyMatch(e -> e.getEventType() == FeedEventType.LIKE
                         && e.getOperation() == FeedEventOperation.ADD
-                        && e.getEntityId().equals(film.getId()));
+                        && e.getEntityId().equals(film.getId())));
 
         List<FeedEvent> user1Likes = feedEventService.findByUserId(user1.getId());
-        assertThat(user1Likes)
+        assertTrue(user1Likes.stream()
                 .anyMatch(e -> e.getEventType() == FeedEventType.LIKE
                         && e.getOperation() == FeedEventOperation.ADD
-                        && e.getEntityId().equals(film.getId()));
+                        && e.getEntityId().equals(film.getId())));
 
         filmService.removeLike(film.getId(), user.getId());
         filmService.removeLike(film.getId(), user1.getId());
 
         List<FeedEvent> userRemoves = feedEventService.findByUserId(user.getId());
-        assertThat(userRemoves)
+        assertTrue(userRemoves.stream()
                 .anyMatch(e -> e.getEventType() == FeedEventType.LIKE
                         && e.getOperation() == FeedEventOperation.REMOVE
-                        && e.getEntityId().equals(film.getId()));
+                        && e.getEntityId().equals(film.getId())));
 
         List<FeedEvent> user1Removes = feedEventService.findByUserId(user1.getId());
-        assertThat(user1Removes)
+        assertTrue(user1Removes.stream()
                 .anyMatch(e -> e.getEventType() == FeedEventType.LIKE
                         && e.getOperation() == FeedEventOperation.REMOVE
-                        && e.getEntityId().equals(film.getId()));
+                        && e.getEntityId().equals(film.getId())));
     }
 
     @Test
@@ -110,43 +115,46 @@ class FeedEventServiceTest {
 
         userService.addFriend(user.getId(), user1.getId());
         List<FeedEvent> afterAdd1 = feedEventService.findByUserId(user.getId());
-        assertThat(afterAdd1)
+        assertTrue(afterAdd1.stream()
                 .anyMatch(e -> e.getEventType() == FeedEventType.FRIEND
                         && e.getOperation() == FeedEventOperation.ADD
-                        && e.getEntityId().equals(user1.getId()));
+                        && e.getEntityId().equals(user1.getId())));
 
         userService.removeFriend(user.getId(), user1.getId());
         List<FeedEvent> afterRemove1 = feedEventService.findByUserId(user.getId());
-        assertThat(afterRemove1)
+        assertTrue(afterRemove1.stream()
                 .anyMatch(e -> e.getEventType() == FeedEventType.FRIEND
                         && e.getOperation() == FeedEventOperation.REMOVE
-                        && e.getEntityId().equals(user1.getId()));
+                        && e.getEntityId().equals(user1.getId())));
 
         User user2 = addUser("2");
 
         userService.addFriend(user.getId(), user2.getId());
         List<FeedEvent> afterAdd2 = feedEventService.findByUserId(user.getId());
-        assertThat(afterAdd2)
+        assertTrue(afterAdd2.stream()
                 .anyMatch(e -> e.getEventType() == FeedEventType.FRIEND
                         && e.getOperation() == FeedEventOperation.ADD
-                        && e.getEntityId().equals(user2.getId()));
-        assertThat(afterAdd2).hasSize(3);
+                        && e.getEntityId().equals(user2.getId())));
+        assertEquals(3, afterAdd2.size());
 
         userService.delete(user1.getId());
 
         List<FeedEvent> afterDelete = feedEventService.findByUserId(user.getId());
-        assertThat(afterDelete)
+        assertTrue(afterDelete.stream()
                 .noneMatch(e -> e.getEventType() == FeedEventType.FRIEND
-                        && e.getEntityId().equals(user1.getId()));
-        assertThat(afterDelete)
+                        && e.getEntityId().equals(user1.getId())));
+        assertTrue(afterDelete.stream()
                 .anyMatch(e -> e.getEventType() == FeedEventType.FRIEND
                         && e.getOperation() == FeedEventOperation.ADD
-                        && e.getEntityId().equals(user2.getId()));
-        assertThat(afterDelete).hasSize(1);
+                        && e.getEntityId().equals(user2.getId())));
+        assertEquals(1, afterDelete.size());
     }
 
     @Test
     void feedEventsCleanupAfterFilmDeletion() {
+        /* Тест корректности очистки событий из ленты при удалении фильма, указанного в событиях типа LIKE
+        Создаем два события по film, три по film1
+        */
         User user1 = addUser("1");
 
         Film film1 = addFilm("1");
@@ -158,10 +166,8 @@ class FeedEventServiceTest {
         filmService.addLike(film1.getId(), user1.getId());
         filmService.removeLike(film1.getId(), user1.getId());
 
-        assertThat(likeEvents(user.getId()))
-                .hasSize(2);
-        assertThat(likeEvents(user1.getId()))
-                .hasSize(3);
+        assertEquals(2, likeEvents(user.getId()).size());
+        assertEquals(3, likeEvents(user1.getId()).size());
 
         filmService.delete(film1.getId());
 
@@ -169,22 +175,143 @@ class FeedEventServiceTest {
         List<FeedEvent> user1EventsAfter = feedEventService.findByUserId(user1.getId());
 
         // события для film1 удалены
-        assertThat(userEventsAfter)
+        assertTrue(userEventsAfter.stream()
                 .noneMatch(e -> e.getEventType() == FeedEventType.LIKE
-                        && e.getEntityId().equals(film1.getId()));
-        assertThat(user1EventsAfter)
+                        && e.getEntityId().equals(film1.getId())));
+        assertTrue(user1EventsAfter.stream()
                 .noneMatch(e -> e.getEventType() == FeedEventType.LIKE
-                        && e.getEntityId().equals(film1.getId()));
+                        && e.getEntityId().equals(film1.getId())));
 
-        assertThat(userEventsAfter)
+        // события для film остались
+        assertTrue(userEventsAfter.stream()
                 .anyMatch(e -> e.getEventType() == FeedEventType.LIKE
-                        && e.getEntityId().equals(film.getId()));
-        assertThat(user1EventsAfter)
+                        && e.getEntityId().equals(film.getId())));
+        assertTrue(user1EventsAfter.stream()
                 .anyMatch(e -> e.getEventType() == FeedEventType.LIKE
-                        && e.getEntityId().equals(film.getId()));
+                        && e.getEntityId().equals(film.getId())));
 
-        assertThat(userEventsAfter).hasSize(1);
-        assertThat(user1EventsAfter).hasSize(1);
+        assertEquals(1, userEventsAfter.size());
+        assertEquals(1, user1EventsAfter.size());
+    }
+
+    @Test
+    void addEventWithNullParamThrowsIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class,
+                () -> feedEventService.addEvent(null,
+                        FeedEventType.LIKE,
+                        FeedEventOperation.ADD,
+                        film.getId()));
+        assertThrows(IllegalArgumentException.class,
+                () -> feedEventService.addEvent(user.getId(),
+                        null,
+                        FeedEventOperation.ADD,
+                        film.getId()));
+        assertThrows(IllegalArgumentException.class,
+                () -> feedEventService.addEvent(user.getId(),
+                        FeedEventType.LIKE,
+                        null,
+                        film.getId()));
+        assertThrows(IllegalArgumentException.class,
+                () -> feedEventService.addEvent(user.getId(),
+                        FeedEventType.LIKE,
+                        FeedEventOperation.ADD,
+                        null));
+    }
+
+    @Test
+    void addEventForNonExistentUserThrowsFeedEventException() {
+        assertThrows(FeedEventException.class,
+                () -> feedEventService.addEvent(9999L,
+                        FeedEventType.LIKE,
+                        FeedEventOperation.ADD,
+                        1L));
+    }
+
+    @Test
+    void findByUserIdForNonExistentUserThrowsNotFoundException() {
+        assertThrows(NotFoundException.class,
+                () -> feedEventService.findByUserId(9999L));
+    }
+
+    @Test
+    void deleteByEntityIdReturnsTrueWhenEventsExistAndFalseWhenNot() {
+        User user1 = addUser("1");
+        userService.addFriend(user.getId(), user1.getId());
+
+        boolean first = feedEventService.deleteByEntityId(FeedEventType.FRIEND, user1.getId());
+        assertTrue(first);
+
+        boolean second = feedEventService.deleteByEntityId(FeedEventType.FRIEND, user1.getId());
+        assertFalse(second);
+    }
+
+    @Test
+    void deleteByEntityIdWithNullParamThrowsIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class,
+                () -> feedEventService.deleteByEntityId(null, 1L));
+        assertThrows(IllegalArgumentException.class,
+                () -> feedEventService.deleteByEntityId(FeedEventType.LIKE, null));
+    }
+
+    @Test
+    void deleteByEntityIdIsolatedByEventType() {
+        Long entityId = 42L;
+        feedEventService.addEvent(user.getId(),
+                FeedEventType.FRIEND,
+                FeedEventOperation.ADD,
+                entityId);
+        feedEventService.addEvent(user.getId(),
+                FeedEventType.LIKE,
+                FeedEventOperation.ADD,
+                entityId);
+
+        boolean deleted = feedEventService.deleteByEntityId(FeedEventType.LIKE, entityId);
+        assertTrue(deleted);
+
+        List<FeedEvent> events = feedEventService.findByUserId(user.getId());
+        assertTrue(events.stream()
+                .anyMatch(e -> e.getEventType() == FeedEventType.FRIEND
+                        && e.getEntityId().equals(entityId)));
+        assertTrue(events.stream()
+                .noneMatch(e -> e.getEventType() == FeedEventType.LIKE
+                        && e.getEntityId().equals(entityId)));
+    }
+
+    @Test
+    void feedEventsOrderedByTimestampDesc() throws InterruptedException {
+        User user1 = addUser("1");
+
+        feedEventService.addEvent(user.getId(),
+                FeedEventType.FRIEND,
+                FeedEventOperation.ADD,
+                user1.getId());
+        Thread.sleep(5);
+        feedEventService.addEvent(user.getId(),
+                FeedEventType.LIKE,
+                FeedEventOperation.ADD,
+                film.getId());
+        Thread.sleep(5);
+        feedEventService.addEvent(user.getId(),
+                FeedEventType.FRIEND,
+                FeedEventOperation.REMOVE,
+                user1.getId());
+
+        List<FeedEvent> events = feedEventService.findByUserId(user.getId());
+
+        assertEquals(3, events.size());
+        assertEquals(FeedEventType.FRIEND, events.get(0).getEventType());
+        assertEquals(FeedEventOperation.REMOVE, events.get(0).getOperation());
+        assertEquals(FeedEventType.FRIEND, events.get(2).getEventType());
+        assertEquals(FeedEventOperation.ADD, events.get(2).getOperation());
+        assertFalse(events.get(0).getTimestamp().isBefore(events.get(1).getTimestamp()));
+        assertFalse(events.get(1).getTimestamp().isBefore(events.get(2).getTimestamp()));
+    }
+
+    private List<FeedEvent> likeEvents(Long userId) {
+        return feedEventService.findByUserId(userId)
+                .stream()
+                .filter(e -> e.getEventType() == FeedEventType.LIKE)
+                .toList();
     }
 
     private Film addFilm(String suffix) {
@@ -197,13 +324,6 @@ class FeedEventServiceTest {
         mpa2.setId(1L);
         film.setMpa(mpa2);
         return filmService.add(film);
-    }
-
-    private List<FeedEvent> likeEvents(Long userId) {
-        return feedEventService.findByUserId(userId)
-                .stream()
-                .filter(e -> e.getEventType() == FeedEventType.LIKE)
-                .toList();
     }
 
     private User addUser(String suffix) {
