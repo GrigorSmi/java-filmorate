@@ -1,17 +1,16 @@
 package ru.yandex.practicum.filmorate.storage;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Slf4j
 @Component
+@Qualifier("memory")
 public class InMemoryFilmStorage implements FilmStorage {
     private final Map<Long, Film> films = new HashMap<>();
     private long nextId = 1;
@@ -79,5 +78,20 @@ public class InMemoryFilmStorage implements FilmStorage {
         } else {
             log.info("Пользователь {} убрал лайк с фильма {}", userId, filmId);
         }
+    }
+
+    @Override
+    public List<Film> getPopular(int count, Long genreId, Integer year) {
+        return films.values().stream()
+                .filter(film -> genreId == null || (film.getGenres() != null && film.getGenres().stream().anyMatch(g -> g.getId().equals(genreId))))
+                .filter(film -> year == null || (film.getReleaseDate() != null && film.getReleaseDate().getYear() == year))
+                .sorted((a, b) -> Integer.compare(b.getLikes().size(), a.getLikes().size()))
+                .limit(count)
+                .toList();
+    }
+
+    @Override
+    public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
+        return java.util.Collections.emptyList(); // Для InMemory можно оставить пустым
     }
 }

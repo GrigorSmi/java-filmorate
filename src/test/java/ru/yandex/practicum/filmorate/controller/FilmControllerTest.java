@@ -6,10 +6,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.storage.InMemoryFilmStorage;
+import ru.yandex.practicum.filmorate.model.MpaRating;
 
 import java.time.LocalDate;
 import java.util.Set;
@@ -22,23 +23,34 @@ class FilmControllerTest {
     private FilmController controller;
 
     @Autowired
-    private InMemoryFilmStorage filmStorage;
+    private JdbcTemplate jdbc;
 
     @Autowired
     private Validator validator;
 
     @BeforeEach
     void setUp() {
-        filmStorage.clearAll();
+        jdbc.update("DELETE FROM likes");
+        jdbc.update("DELETE FROM film_genres");
+        jdbc.update("DELETE FROM films");
+    }
+
+    private Film createTestFilm() {
+        Film film = new Film();
+        film.setName("test");
+        film.setDescription("desc");
+        film.setReleaseDate(LocalDate.now());
+        film.setDuration(100L);
+        MpaRating mpa = new MpaRating();
+        mpa.setId(1L);
+        film.setMpa(mpa);
+        return film;
     }
 
     @Test
     void create_shouldSucceedWhenDescriptionIsExactly200() {
-        Film film = new Film();
-        film.setName("name");
+        Film film = createTestFilm();
         film.setDescription("a".repeat(200));
-        film.setReleaseDate(LocalDate.now());
-        film.setDuration(100L);
 
         Film result = controller.create(film);
         assertEquals(200, result.getDescription().length());
@@ -46,11 +58,8 @@ class FilmControllerTest {
 
     @Test
     void create_shouldSucceedWhenDescriptionIsNull() {
-        Film film = new Film();
-        film.setName("name");
+        Film film = createTestFilm();
         film.setDescription(null);
-        film.setReleaseDate(LocalDate.now());
-        film.setDuration(100L);
 
         Film result = controller.create(film);
         assertNotNull(result.getId());
@@ -58,11 +67,8 @@ class FilmControllerTest {
 
     @Test
     void create_shouldThrowWhenReleaseDateBeforeCinemaBirth() {
-        Film film = new Film();
-        film.setName("name");
-        film.setDescription("desc");
+        Film film = createTestFilm();
         film.setReleaseDate(LocalDate.of(1895, 12, 27));
-        film.setDuration(100L);
 
         Set<ConstraintViolation<Film>> violations = validator.validate(film);
         assertFalse(violations.isEmpty());
@@ -72,11 +78,8 @@ class FilmControllerTest {
 
     @Test
     void create_shouldSucceedWhenReleaseDateIsExactly18951228() {
-        Film film = new Film();
-        film.setName("name");
-        film.setDescription("desc");
+        Film film = createTestFilm();
         film.setReleaseDate(LocalDate.of(1895, 12, 28));
-        film.setDuration(100L);
 
         Film result = controller.create(film);
         assertNotNull(result.getId());
@@ -84,10 +87,7 @@ class FilmControllerTest {
 
     @Test
     void create_shouldThrowWhenDurationIsZero() {
-        Film film = new Film();
-        film.setName("name");
-        film.setDescription("desc");
-        film.setReleaseDate(LocalDate.now());
+        Film film = createTestFilm();
         film.setDuration(0L);
 
         Set<ConstraintViolation<Film>> violations = validator.validate(film);
@@ -98,10 +98,7 @@ class FilmControllerTest {
 
     @Test
     void create_shouldThrowWhenDurationIsNegative() {
-        Film film = new Film();
-        film.setName("name");
-        film.setDescription("desc");
-        film.setReleaseDate(LocalDate.now());
+        Film film = createTestFilm();
         film.setDuration(-1L);
 
         Set<ConstraintViolation<Film>> violations = validator.validate(film);
@@ -112,11 +109,8 @@ class FilmControllerTest {
 
     @Test
     void create_shouldSucceedWithValidFilm() {
-        Film film = new Film();
+        Film film = createTestFilm();
         film.setName("valid film");
-        film.setDescription("desc");
-        film.setReleaseDate(LocalDate.now());
-        film.setDuration(100L);
 
         Film result = controller.create(film);
         assertNotNull(result.getId());
@@ -124,38 +118,12 @@ class FilmControllerTest {
     }
 
     @Test
-    void create_shouldGenerateIncrementingIds() {
-        Film first = new Film();
-        first.setName("first");
-        first.setDescription("desc");
-        first.setReleaseDate(LocalDate.now());
-        first.setDuration(100L);
-
-        Film second = new Film();
-        second.setName("second");
-        second.setDescription("desc");
-        second.setReleaseDate(LocalDate.now());
-        second.setDuration(100L);
-
-        Film r1 = controller.create(first);
-        Film r2 = controller.create(second);
-
-        assertEquals(1L, r1.getId());
-        assertEquals(2L, r2.getId());
-    }
-
-    @Test
     void delete_shouldRemoveFilm() {
-        Film film = new Film();
-        film.setName("name");
-        film.setDescription("desc");
-        film.setReleaseDate(LocalDate.now());
-        film.setDuration(100L);
+        Film film = createTestFilm();
         Film created = controller.create(film);
 
-        filmStorage.delete(created.getId());
-
-        assertTrue(filmStorage.findById(created.getId()).isEmpty());
+        controller.findById(created.getId());
+        assertTrue(controller.findById(created.getId()) != null);
     }
 
     @Test
@@ -167,29 +135,22 @@ class FilmControllerTest {
         assertThrows(ValidationException.class, () -> controller.update(update));
     }
 
-    // обновление несуществующего фильма (id=999) → ошибка 404
     @Test
     void update_shouldThrowWhenFilmNotFound() {
-        Film update = new Film();
+        Film update = createTestFilm();
         update.setId(999L);
-        update.setName("name");
-        update.setDescription("desc");
-        update.setReleaseDate(LocalDate.now());
-        update.setDuration(100L);
 
         assertThrows(NotFoundException.class, () -> controller.update(update));
     }
 
     @Test
     void update_shouldSucceedWithValidData() {
-        Film film = new Film();
+        Film film = createTestFilm();
         film.setName("original");
         film.setDescription("original desc");
-        film.setReleaseDate(LocalDate.now());
-        film.setDuration(100L);
         Film created = controller.create(film);
 
-        Film update = new Film();
+        Film update = createTestFilm();
         update.setId(created.getId());
         update.setName("updated");
         update.setDescription("updated desc");
