@@ -291,6 +291,51 @@ public class FilmDbStorage implements FilmStorage {
                         "ORDER BY COUNT(DISTINCT l.user_id) DESC, f.id",
                 filmRowMapper, userId, friendId
         );
+    public List<Film> search(String query, String by) {
+        String likePattern = "%" + query.toLowerCase() + "%";
+        String sql;
+
+        Set<String> searchBy = Arrays.stream(by.toLowerCase().split(","))
+                .map(String::trim)
+                .collect(Collectors.toSet());
+        boolean searchTitle = searchBy.contains("title");
+        boolean searchDirector = searchBy.contains("director");
+
+        String base =
+                "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name AS mpa_name " +
+                        "FROM films f " +
+                        "JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
+                        "LEFT JOIN likes l ON f.id = l.film_id ";
+
+        if (searchTitle && searchDirector) {
+            sql = base +
+                    "LEFT JOIN film_directors fd ON f.id = fd.film_id " +
+                    "LEFT JOIN directors d ON fd.director_id = d.id " +
+                    "WHERE LOWER(f.name) LIKE ? OR LOWER(d.name) LIKE ? " +
+                    "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name " +
+                    "ORDER BY COUNT(DISTINCT l.user_id) DESC, f.id";
+            return enrichAndReturn(
+                    jdbc.query(sql, filmRowMapper, likePattern, likePattern));
+        } else if (searchTitle) {
+            sql = base +
+                    "WHERE LOWER(f.name) LIKE ? " +
+                    "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name " +
+                    "ORDER BY COUNT(DISTINCT l.user_id) DESC, f.id";
+            return enrichAndReturn(
+                    jdbc.query(sql, filmRowMapper, likePattern));
+        } else {
+            sql = base +
+                    "JOIN film_directors fd ON f.id = fd.film_id " +
+                    "JOIN directors d ON fd.director_id = d.id " +
+                    "WHERE LOWER(d.name) LIKE ? " +
+                    "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name " +
+                    "ORDER BY COUNT(DISTINCT l.user_id) DESC, f.id";
+            return enrichAndReturn(
+                    jdbc.query(sql, filmRowMapper, likePattern));
+        }
+    }
+
+    private List<Film> enrichAndReturn(List<Film> films) {
         enrichFilms(films);
         return films;
     }

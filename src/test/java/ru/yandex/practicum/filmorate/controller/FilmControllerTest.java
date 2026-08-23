@@ -137,8 +137,14 @@ class FilmControllerTest {
         Film film = createTestFilm();
         Film created = controller.create(film);
 
-        controller.findById(created.getId());
-        assertTrue(controller.findById(created.getId()) != null);
+        controller.delete(created.getId());
+
+        assertThrows(NotFoundException.class, () -> controller.findById(created.getId()));
+    }
+
+    @Test
+    void delete_shouldThrowWhenFilmNotFound() {
+        assertThrows(NotFoundException.class, () -> controller.delete(999L));
     }
 
     @Test

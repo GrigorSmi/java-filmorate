@@ -94,6 +94,12 @@ public class FilmService {
                 .toList();
     }
 
+    public void delete(Long id) {
+        filmStorage.findById(id)
+                .orElseThrow(() -> new NotFoundException("Фильм с id=" + id + " не найден"));
+        filmStorage.delete(id);
+    }
+
     public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
         directorService.findById(directorId);
         if (filmStorage instanceof FilmDbStorage dbStorage) {
@@ -108,5 +114,7 @@ public class FilmService {
         userStorage.findById(friendId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + friendId + " не найден"));
         return filmStorage.getCommonFilms(userId, friendId);
+    public List<Film> search(String query, String by) {
+        return filmStorage.search(query, by);
     }
 }

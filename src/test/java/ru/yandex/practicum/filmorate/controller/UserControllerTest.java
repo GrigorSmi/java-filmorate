@@ -131,4 +131,19 @@ class UserControllerTest {
         assertEquals("newlogin", result.getLogin());
         assertEquals("new name", result.getName());
     }
+
+    @Test
+    void delete_shouldRemoveUser() {
+        User user = createTestUser("9");
+        User created = controller.create(user);
+
+        controller.delete(created.getId());
+
+        assertThrows(NotFoundException.class, () -> controller.findById(created.getId()));
+    }
+
+    @Test
+    void delete_shouldThrowWhenUserNotFound() {
+        assertThrows(NotFoundException.class, () -> controller.delete(999L));
+    }
 }

@@ -7,10 +7,12 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -93,5 +95,21 @@ public class InMemoryFilmStorage implements FilmStorage {
                     return cmp != 0 ? cmp : Long.compare(a.getId(), b.getId());
                 })
                 .toList();
+    public List<Film> search(String query, String by) {
+        String lowerQuery = query.toLowerCase();
+        boolean searchTitle = by.contains("title");
+        boolean searchDirector = by.contains("director");
+
+        return films.values().stream()
+                .filter(film -> {
+                    boolean matchTitle = searchTitle && film.getName().toLowerCase().contains(lowerQuery);
+                    boolean matchDirector = searchDirector && film.getDirectors() != null &&
+                            film.getDirectors().stream()
+                                    .anyMatch(d -> d.getName().toLowerCase().contains(lowerQuery));
+                    return matchTitle || matchDirector;
+                })
+                .sorted(Comparator.comparingInt((Film f) -> f.getLikes() != null ? f.getLikes().size() : 0).reversed()
+                        .thenComparing(Film::getId))
+                .collect(Collectors.toList());
     }
 }

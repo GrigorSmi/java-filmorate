@@ -91,6 +91,12 @@ public class UserService {
         log.info("Дружба между {} и {} удалена", userId, friendId);
     }
 
+    public void delete(Long id) {
+        userStorage.findById(id)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
+        userStorage.delete(id);
+    }
+
     public List<User> getFriends(Long userId) {
         userStorage.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));

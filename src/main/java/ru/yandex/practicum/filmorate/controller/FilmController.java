@@ -25,6 +25,13 @@ public class FilmController {
         return filmService.findAll();
     }
 
+    @GetMapping("/search")
+    public List<Film> search(@RequestParam String query,
+                             @RequestParam(defaultValue = "title") String by) {
+        log.info("Запрос поиска: query={}, by={}", query, by);
+        return filmService.search(query, by);
+    }
+
     @GetMapping("/{id}")
     public Film findById(@PathVariable Long id) {
         return filmService.findById(id);
@@ -48,6 +55,12 @@ public class FilmController {
         Film updated = filmService.update(newFilm);
         log.info("Обновлён фильм: id={}, name={}", updated.getId(), updated.getName());
         return updated;
+    }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        log.info("Запрос на удаление фильма: id={}", id);
+        filmService.delete(id);
     }
 
     @PutMapping("/{id}/like/{userId}")
