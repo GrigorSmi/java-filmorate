@@ -46,12 +46,8 @@ public class FilmDbStorage implements FilmStorage {
     private void enrichFilms(List<Film> films) {
         if (films.isEmpty()) return;
 
-        Set<Long> filmIds = films.stream()
-                .map(Film::getId)
-                .collect(Collectors.toSet());
-        String inClause = filmIds.stream()
-                .map(String::valueOf)
-                .collect(Collectors.joining(","));
+        Set<Long> filmIds = films.stream().map(Film::getId).collect(Collectors.toSet());
+        String inClause = filmIds.stream().map(String::valueOf).collect(Collectors.joining(","));
 
         Map<Long, Set<Genre>> genresByFilm = new HashMap<>();
         jdbc.query(
@@ -105,8 +101,7 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     private String loadMpaName(Long mpaId) {
-        List<String> names = jdbc.queryForList(
-                "SELECT name FROM mpa_ratings WHERE id = ?", String.class, mpaId);
+        List<String> names = jdbc.queryForList("SELECT name FROM mpa_ratings WHERE id = ?", String.class, mpaId);
         return names.isEmpty() ? null : names.get(0);
     }
 
@@ -156,8 +151,7 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     @Transactional
     public Film update(Film film) {
-        findById(film.getId())
-                .orElseThrow(() -> new NotFoundException("Фильм с id=" + film.getId() + " не найден"));
+        findById(film.getId()).orElseThrow(() -> new NotFoundException("Фильм с id=" + film.getId() + " не найден"));
 
         String sql = "UPDATE films SET name = ?, description = ?, release_date = ?, duration = ?, mpa_rating_id = ? WHERE id = ?";
         jdbc.update(sql,
@@ -237,18 +231,45 @@ public class FilmDbStorage implements FilmStorage {
         jdbc.update("DELETE FROM likes WHERE film_id = ? AND user_id = ?", filmId, userId);
     }
 
-    public List<Film> getPopular(int count) {
-        List<Film> films = jdbc.query(
+    /**
+     * Получение популярных фильмов с динамической фильтрацией по жанру и году.
+     */
+    @Override
+    public List<Film> getPopular(int count, Long genreId, Integer year) {
+        StringBuilder sql = new StringBuilder(
                 "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name AS mpa_name " +
                         "FROM films f " +
                         "JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
-                        "LEFT JOIN likes l ON f.id = l.film_id " +
-                        "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name " +
-                        "ORDER BY COUNT(l.user_id) DESC, f.id " +
-                        "LIMIT ?",
-                filmRowMapper, count
+                        "LEFT JOIN likes l ON f.id = l.film_id "
         );
-        enrichFilms(films);
+        List<Object> params = new ArrayList<>();
+
+        // 1. Если указан жанр, делаем INNER JOIN, чтобы оставить только фильмы этого жанра
+        if (genreId != null) {
+            sql.append("JOIN film_genres fg ON f.id = fg.film_id AND fg.genre_id = ? ");
+            params.add(genreId);
+        }
+
+        // 2. Если указан год, добавляем условие фильтрации.
+        // Важно: если genreId был null, это первое условие, поэтому пишем WHERE. Иначе пишем AND.
+        if (year != null) {
+            if (genreId == null) {
+                sql.append("WHERE EXTRACT(YEAR FROM f.release_date) = ? ");
+            } else {
+                sql.append("AND EXTRACT(YEAR FROM f.release_date) = ? ");
+            }
+            params.add(year);
+        }
+
+        // 3. Группировка и сортировка
+        sql.append("GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name ")
+                .append("ORDER BY COUNT(l.user_id) DESC, f.id ASC ")
+                .append("LIMIT ?");
+
+        params.add(count);
+
+        List<Film> films = jdbc.query(sql.toString(), filmRowMapper, params.toArray());
+        enrichFilms(films); // Подтягиваем полные данные о жанрах и лайках для результата
         return films;
     }
 

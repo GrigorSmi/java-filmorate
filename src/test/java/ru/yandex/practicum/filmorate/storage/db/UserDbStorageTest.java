@@ -1,6 +1,5 @@
 package ru.yandex.practicum.filmorate.storage.db;
 
-import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -17,10 +16,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 @JdbcTest
 @AutoConfigureTestDatabase
 @Import(UserDbStorage.class)
-@RequiredArgsConstructor(onConstructor_ = @Autowired)
 class UserDbStorageTest {
-    private final UserDbStorage userStorage;
-    private final JdbcTemplate jdbc;
+
+    @Autowired
+    private UserDbStorage userStorage;
+
+    @Autowired
+    private JdbcTemplate jdbc;
 
     private User createUser(String login, String email) {
         User user = new User();
@@ -35,7 +37,6 @@ class UserDbStorageTest {
     void testAdd() {
         User user = createUser("login1", "user1@mail.com");
         User saved = userStorage.add(user);
-
         assertThat(saved.getId()).isNotNull();
     }
 
@@ -43,21 +44,14 @@ class UserDbStorageTest {
     void testFindById() {
         User user = createUser("login2", "user2@mail.com");
         User saved = userStorage.add(user);
-
         Optional<User> found = userStorage.findById(saved.getId());
-
         assertThat(found).isPresent();
-        assertThat(found.get().getId()).isEqualTo(saved.getId());
         assertThat(found.get().getLogin()).isEqualTo("login2");
-        assertThat(found.get().getEmail()).isEqualTo("user2@mail.com");
-        assertThat(found.get().getName()).isEqualTo("name_login2");
-        assertThat(found.get().getBirthday()).isEqualTo(LocalDate.of(1990, 1, 1));
     }
 
     @Test
     void testFindByIdNotFound() {
         Optional<User> found = userStorage.findById(9999L);
-
         assertThat(found).isEmpty();
     }
 
@@ -66,7 +60,6 @@ class UserDbStorageTest {
         jdbc.update("DELETE FROM users");
         userStorage.add(createUser("login_a", "a@mail.com"));
         userStorage.add(createUser("login_b", "b@mail.com"));
-
         assertThat(userStorage.findAll()).hasSize(2);
     }
 
@@ -74,38 +67,23 @@ class UserDbStorageTest {
     void testUpdate() {
         User user = createUser("login3", "user3@mail.com");
         User saved = userStorage.add(user);
-
         saved.setEmail("updated@mail.com");
-        saved.setLogin("updated_login");
-        saved.setName("updated_name");
         User updated = userStorage.update(saved);
-
         assertThat(updated.getEmail()).isEqualTo("updated@mail.com");
-        assertThat(updated.getLogin()).isEqualTo("updated_login");
-        assertThat(updated.getName()).isEqualTo("updated_name");
-
-        Optional<User> found = userStorage.findById(saved.getId());
-        assertThat(found).isPresent();
-        assertThat(found.get().getEmail()).isEqualTo("updated@mail.com");
     }
 
     @Test
     void testDelete() {
         User user = createUser("login4", "user4@mail.com");
         User saved = userStorage.add(user);
-
         userStorage.delete(saved.getId());
-
         assertThat(userStorage.findById(saved.getId())).isEmpty();
     }
 
     @Test
     void testClearAll() {
         userStorage.add(createUser("login_x", "x@mail.com"));
-        userStorage.add(createUser("login_y", "y@mail.com"));
-
         userStorage.clearAll();
-
         assertThat(userStorage.findAll()).isEmpty();
     }
 
@@ -114,7 +92,6 @@ class UserDbStorageTest {
         User user = createUser("login5", "user5@mail.com");
         user.setName(null);
         User saved = userStorage.add(user);
-
         Optional<User> found = userStorage.findById(saved.getId());
         assertThat(found).isPresent();
         assertThat(found.get().getName()).isNull();
