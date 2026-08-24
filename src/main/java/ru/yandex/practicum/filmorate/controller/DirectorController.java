@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
@@ -12,12 +13,9 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/directors")
+@RequiredArgsConstructor
 public class DirectorController {
     private final DirectorService directorService;
-
-    public DirectorController(DirectorService directorService) {
-        this.directorService = directorService;
-    }
 
     @GetMapping
     public List<Director> findAll() {

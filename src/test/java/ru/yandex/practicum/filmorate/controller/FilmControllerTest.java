@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 class FilmControllerTest {
+
     @Autowired
     private FilmController controller;
 
@@ -36,6 +37,7 @@ class FilmControllerTest {
     @BeforeEach
     void setUp() {
         jdbc.update("DELETE FROM likes");
+        jdbc.update("DELETE FROM film_directors");
         jdbc.update("DELETE FROM film_genres");
         jdbc.update("DELETE FROM films");
         jdbc.update("DELETE FROM users");
