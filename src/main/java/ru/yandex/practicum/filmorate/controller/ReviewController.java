@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.service.ReviewService;
 
+import jakarta.validation.Valid;
 import java.util.List;
 
 @Slf4j
@@ -13,60 +14,61 @@ import java.util.List;
 @RequestMapping("/reviews")
 @RequiredArgsConstructor
 public class ReviewController {
+
     private final ReviewService reviewService;
 
     @PostMapping
-    public Review create(@RequestBody Review review) {
-        log.info("Запрос на создание отзыва: {}", review);
+    public Review create(@Valid @RequestBody Review review) {
+        log.info("Создание отзыва: {}", review);
         return reviewService.create(review);
     }
 
     @PutMapping
-    public Review update(@RequestBody Review review) {
-        log.info("Запрос на обновление отзыва: {}", review);
+    public Review update(@Valid @RequestBody Review review) {
+        log.info("Обновление отзыва: {}", review);
         return reviewService.update(review);
     }
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
-        log.info("Запрос на удаление отзыва с id={}", id);
+        log.info("Удаление отзыва с id={}", id);
         reviewService.delete(id);
     }
 
     @GetMapping("/{id}")
     public Review getById(@PathVariable Long id) {
-        log.info("Запрос отзыва по id={}", id);
+        log.info("Получение отзыва с id={}", id);
         return reviewService.getById(id);
     }
 
     @GetMapping
-    public List<Review> getByFilmId(@RequestParam(required = false) Long filmId,
-                                    @RequestParam(defaultValue = "10") Integer count) {
+    public List<Review> getReviewsByFilmId(@RequestParam(required = false) Long filmId,
+                                           @RequestParam(defaultValue = "10") Integer count) {
         log.info("Запрос отзывов: filmId={}, count={}", filmId, count);
-        return reviewService.getByFilmId(filmId, count);
+        return reviewService.getReviewsByFilmId(filmId, count);
     }
 
     @PutMapping("/{id}/like/{userId}")
     public void addLike(@PathVariable Long id, @PathVariable Long userId) {
-        log.info("Пользователь {} ставит лайк отзыву {}", userId, id);
+        log.info("Добавление лайка пользователем {} к отзыву {}", userId, id);
         reviewService.addLike(id, userId);
-    }
-
-    @PutMapping("/{id}/dislike/{userId}")
-    public void addDislike(@PathVariable Long id, @PathVariable Long userId) {
-        log.info("Пользователь {} ставит дизлайк отзыву {}", userId, id);
-        reviewService.addDislike(id, userId);
     }
 
     @DeleteMapping("/{id}/like/{userId}")
     public void removeLike(@PathVariable Long id, @PathVariable Long userId) {
-        log.info("Пользователь {} удаляет лайк/дизлайк отзыва {}", userId, id);
-        reviewService.removeVote(id, userId);
+        log.info("Удаление лайка пользователя {} с отзыва {}", userId, id);
+        reviewService.removeLike(id, userId);
+    }
+
+    @PutMapping("/{id}/dislike/{userId}")
+    public void addDislike(@PathVariable Long id, @PathVariable Long userId) {
+        log.info("Добавление дизлайка пользователем {} к отзыву {}", userId, id);
+        reviewService.addDislike(id, userId);
     }
 
     @DeleteMapping("/{id}/dislike/{userId}")
     public void removeDislike(@PathVariable Long id, @PathVariable Long userId) {
-        log.info("Пользователь {} удаляет дизлайк отзыва {}", userId, id);
-        reviewService.removeVote(id, userId);
+        log.info("Удаление дизлайка пользователя {} с отзыва {}", userId, id);
+        reviewService.removeDislike(id, userId);
     }
 }

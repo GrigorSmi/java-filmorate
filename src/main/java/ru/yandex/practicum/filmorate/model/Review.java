@@ -1,20 +1,17 @@
 package ru.yandex.practicum.filmorate.model;
 
-import jakarta.validation.constraints.NotNull; // <-- Добавь этот импорт
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Review {
-    private Long reviewId;
-
+    private Long id;
     private String content;
-    private Boolean isPositive;
-
-    @NotNull(message = "ID пользователя не может быть пустым") // <-- ДОБАВЬ ЭТО
+    private Boolean isPositive; // Lombok сгенерирует getIsPositive() для этого поля
     private Long userId;
-
-    @NotNull(message = "ID фильма не может быть пустым")       // <-- ДОБАВЬ ЭТО
     private Long filmId;
-
     private Integer useful;
 }

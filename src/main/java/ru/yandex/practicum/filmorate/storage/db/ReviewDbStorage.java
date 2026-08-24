@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.storage.db;
 
-import org.springframework.beans.factory.annotation.Qualifier;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -10,126 +11,132 @@ import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.storage.ReviewStorage;
 
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @Repository
-@Qualifier("db")
+@RequiredArgsConstructor
 public class ReviewDbStorage implements ReviewStorage {
+
     private final JdbcTemplate jdbc;
-    private final RowMapper<Review> reviewRowMapper = (rs, rowNum) -> {
+
+    private final RowMapper<Review> reviewRowMapper = (ResultSet rs, int rowNum) -> {
         Review review = new Review();
-        review.setReviewId(rs.getLong("review_id"));
+        review.setId(rs.getLong("review_id"));
         review.setContent(rs.getString("content"));
         review.setIsPositive(rs.getBoolean("is_positive"));
-        review.setUserId(rs.getLong("user_id"));
         review.setFilmId(rs.getLong("film_id"));
+        review.setUserId(rs.getLong("user_id"));
         review.setUseful(rs.getInt("useful"));
         return review;
     };
 
-    public ReviewDbStorage(JdbcTemplate jdbc) {
-        this.jdbc = jdbc;
-    }
-
     @Override
     public Review create(Review review) {
+        String sql = "INSERT INTO reviews (content, is_positive, film_id, user_id, useful) VALUES (?, ?, ?, ?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
+
         jdbc.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(
-                    "INSERT INTO reviews (content, is_positive, film_id, user_id) VALUES (?, ?, ?, ?)",
-                    Statement.RETURN_GENERATED_KEYS);
+            PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, review.getContent());
             ps.setBoolean(2, review.getIsPositive());
             ps.setLong(3, review.getFilmId());
             ps.setLong(4, review.getUserId());
+            ps.setInt(5, review.getUseful() != null ? review.getUseful() : 0);
             return ps;
         }, keyHolder);
-        review.setReviewId(keyHolder.getKey().longValue());
-        review.setUseful(0);
+
+        if (keyHolder.getKey() != null) {
+            review.setId(keyHolder.getKey().longValue());
+        }
+
         return review;
     }
 
     @Override
     public Review update(Review review) {
-        jdbc.update("UPDATE reviews SET content = ?, is_positive = ? WHERE review_id = ?",
-                review.getContent(), review.getIsPositive(), review.getReviewId());
-        return getById(review.getReviewId()).orElse(review);
+        String sql = "UPDATE reviews SET content = ?, is_positive = ? WHERE review_id = ?";
+        jdbc.update(sql, review.getContent(), review.getIsPositive(), review.getId());
+        return review;
     }
 
     @Override
     public void delete(Long reviewId) {
-        jdbc.update("DELETE FROM reviews WHERE review_id = ?", reviewId);
+        String sql = "DELETE FROM reviews WHERE review_id = ?";
+        jdbc.update(sql, reviewId);
     }
 
     @Override
-    public Optional<Review> getById(Long reviewId) {
-        return jdbc.query("SELECT * FROM reviews WHERE review_id = ?", reviewRowMapper, reviewId)
-                .stream().findFirst();
+    public Optional<Review> findById(Long reviewId) {
+        String sql = "SELECT * FROM reviews WHERE review_id = ?";
+        List<Review> reviews = jdbc.query(sql, reviewRowMapper, reviewId);
+        return reviews.isEmpty() ? Optional.empty() : Optional.of(reviews.get(0));
     }
 
     @Override
-    public List<Review> getByFilmId(Long filmId, Integer count) {
-        String sql = filmId != null
-                ? "SELECT * FROM reviews WHERE film_id = ? ORDER BY useful DESC LIMIT ?"
-                : "SELECT * FROM reviews ORDER BY useful DESC LIMIT ?";
-        return jdbc.query(sql, reviewRowMapper,
-                filmId != null ? new Object[]{filmId, count} : new Object[]{count});
+    public List<Review> getReviewsByFilmId(Long filmId, Integer count) {
+        if (filmId != null) {
+            String sql = "SELECT * FROM reviews WHERE film_id = ? ORDER BY useful DESC LIMIT ?";
+            return jdbc.query(sql, reviewRowMapper, filmId, count);
+        } else {
+            String sql = "SELECT * FROM reviews ORDER BY useful DESC LIMIT ?";
+            return jdbc.query(sql, reviewRowMapper, count);
+        }
     }
 
     @Override
     public void addLike(Long reviewId, Long userId) {
-        List<Boolean> likes = jdbc.queryForList(
-                "SELECT is_like FROM reviews_likes WHERE review_id = ? AND user_id = ?",
-                Boolean.class, reviewId, userId);
-        if (likes.isEmpty()) {
-            jdbc.update("INSERT INTO reviews_likes (review_id, user_id, is_like) VALUES (?, ?, true)",
-                    reviewId, userId);
-            jdbc.update("UPDATE reviews SET useful = useful + 1 WHERE review_id = ?", reviewId);
-        } else if (likes.get(0)) {
-            jdbc.update("DELETE FROM reviews_likes WHERE review_id = ? AND user_id = ?",
-                    reviewId, userId);
-            jdbc.update("UPDATE reviews SET useful = useful - 1 WHERE review_id = ?", reviewId);
+        String checkSql = "SELECT COUNT(*) FROM reviews_likes WHERE review_id = ? AND user_id = ?";
+        Integer count = jdbc.queryForObject(checkSql, Integer.class, reviewId, userId);
+
+        if (count != null && count > 0) {
+            String updateSql = "UPDATE reviews_likes SET is_like = true WHERE review_id = ? AND user_id = ?";
+            jdbc.update(updateSql, reviewId, userId);
         } else {
-            jdbc.update("UPDATE reviews_likes SET is_like = true WHERE review_id = ? AND user_id = ?",
-                    reviewId, userId);
-            jdbc.update("UPDATE reviews SET useful = useful + 2 WHERE review_id = ?", reviewId);
+            String insertSql = "INSERT INTO reviews_likes (review_id, user_id, is_like) VALUES (?, ?, true)";
+            jdbc.update(insertSql, reviewId, userId);
         }
+
+        String updateUsefulSql = "UPDATE reviews SET useful = useful + 1 WHERE review_id = ?";
+        jdbc.update(updateUsefulSql, reviewId);
+    }
+
+    @Override
+    public void removeLike(Long reviewId, Long userId) {
+        String deleteSql = "DELETE FROM reviews_likes WHERE review_id = ? AND user_id = ? AND is_like = true";
+        jdbc.update(deleteSql, reviewId, userId);
+
+        String updateUsefulSql = "UPDATE reviews SET useful = useful - 1 WHERE review_id = ?";
+        jdbc.update(updateUsefulSql, reviewId);
     }
 
     @Override
     public void addDislike(Long reviewId, Long userId) {
-        List<Boolean> likes = jdbc.queryForList(
-                "SELECT is_like FROM reviews_likes WHERE review_id = ? AND user_id = ?",
-                Boolean.class, reviewId, userId);
-        if (likes.isEmpty()) {
-            jdbc.update("INSERT INTO reviews_likes (review_id, user_id, is_like) VALUES (?, ?, false)",
-                    reviewId, userId);
-            jdbc.update("UPDATE reviews SET useful = useful - 1 WHERE review_id = ?", reviewId);
-        } else if (!likes.get(0)) {
-            jdbc.update("DELETE FROM reviews_likes WHERE review_id = ? AND user_id = ?",
-                    reviewId, userId);
-            jdbc.update("UPDATE reviews SET useful = useful + 1 WHERE review_id = ?", reviewId);
+        String checkSql = "SELECT COUNT(*) FROM reviews_likes WHERE review_id = ? AND user_id = ?";
+        Integer count = jdbc.queryForObject(checkSql, Integer.class, reviewId, userId);
+
+        if (count != null && count > 0) {
+            String updateSql = "UPDATE reviews_likes SET is_like = false WHERE review_id = ? AND user_id = ?";
+            jdbc.update(updateSql, reviewId, userId);
         } else {
-            jdbc.update("UPDATE reviews_likes SET is_like = false WHERE review_id = ? AND user_id = ?",
-                    reviewId, userId);
-            jdbc.update("UPDATE reviews SET useful = useful - 2 WHERE review_id = ?", reviewId);
+            String insertSql = "INSERT INTO reviews_likes (review_id, user_id, is_like) VALUES (?, ?, false)";
+            jdbc.update(insertSql, reviewId, userId);
         }
+
+        String updateUsefulSql = "UPDATE reviews SET useful = useful - 1 WHERE review_id = ?";
+        jdbc.update(updateUsefulSql, reviewId);
     }
 
     @Override
-    public void removeVote(Long reviewId, Long userId) {
-        List<Boolean> likes = jdbc.queryForList(
-                "SELECT is_like FROM reviews_likes WHERE review_id = ? AND user_id = ?",
-                Boolean.class, reviewId, userId);
-        if (!likes.isEmpty()) {
-            jdbc.update("DELETE FROM reviews_likes WHERE review_id = ? AND user_id = ?",
-                    reviewId, userId);
-            String usefulUpdate = likes.get(0)
-                    ? "UPDATE reviews SET useful = useful - 1 WHERE review_id = ?"
-                    : "UPDATE reviews SET useful = useful + 1 WHERE review_id = ?";
-            jdbc.update(usefulUpdate, reviewId);
-        }
+    public void removeDislike(Long reviewId, Long userId) {
+        String deleteSql = "DELETE FROM reviews_likes WHERE review_id = ? AND user_id = ? AND is_like = false";
+        jdbc.update(deleteSql, reviewId, userId);
+
+        String updateUsefulSql = "UPDATE reviews SET useful = useful + 1 WHERE review_id = ?";
+        jdbc.update(updateUsefulSql, reviewId);
     }
 }
