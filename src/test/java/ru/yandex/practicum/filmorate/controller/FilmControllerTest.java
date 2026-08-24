@@ -11,8 +11,10 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.MpaRating;
+import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -21,6 +23,9 @@ import static org.junit.jupiter.api.Assertions.*;
 class FilmControllerTest {
     @Autowired
     private FilmController controller;
+
+    @Autowired
+    private UserController userController;
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -33,6 +38,7 @@ class FilmControllerTest {
         jdbc.update("DELETE FROM likes");
         jdbc.update("DELETE FROM film_genres");
         jdbc.update("DELETE FROM films");
+        jdbc.update("DELETE FROM users");
     }
 
     private Film createTestFilm() {
@@ -45,6 +51,15 @@ class FilmControllerTest {
         mpa.setId(1L);
         film.setMpa(mpa);
         return film;
+    }
+
+    private User createTestUser(String suffix) {
+        User user = new User();
+        user.setEmail("user" + suffix + "@mail.com");
+        user.setLogin("login" + suffix);
+        user.setName("name" + suffix);
+        user.setBirthday(LocalDate.of(1990, 1, 1));
+        return user;
     }
 
     @Test
@@ -122,8 +137,14 @@ class FilmControllerTest {
         Film film = createTestFilm();
         Film created = controller.create(film);
 
-        controller.findById(created.getId());
-        assertTrue(controller.findById(created.getId()) != null);
+        controller.delete(created.getId());
+
+        assertThrows(NotFoundException.class, () -> controller.findById(created.getId()));
+    }
+
+    @Test
+    void delete_shouldThrowWhenFilmNotFound() {
+        assertThrows(NotFoundException.class, () -> controller.delete(999L));
     }
 
     @Test
@@ -161,5 +182,70 @@ class FilmControllerTest {
         assertEquals("updated", result.getName());
         assertEquals("updated desc", result.getDescription());
         assertEquals(200L, result.getDuration());
+    }
+
+    @Test
+    void getCommonFilms_shouldReturnCommonFilmsSortedByPopularity() {
+        User user1 = userController.create(createTestUser("u1"));
+        User user2 = userController.create(createTestUser("u2"));
+
+        Film film1 = createTestFilm();
+        film1.setName("common1");
+        Film f1 = controller.create(film1);
+
+        Film film2 = createTestFilm();
+        film2.setName("common2");
+        Film f2 = controller.create(film2);
+
+        Film film3 = createTestFilm();
+        film3.setName("onlyUser1");
+        Film f3 = controller.create(film3);
+
+        controller.addLike(f1.getId(), user1.getId());
+        controller.addLike(f1.getId(), user2.getId());
+        controller.addLike(f2.getId(), user1.getId());
+        controller.addLike(f2.getId(), user2.getId());
+        controller.addLike(f3.getId(), user1.getId());
+
+        List<Film> common = controller.getCommonFilms(user1.getId(), user2.getId());
+
+        assertEquals(2, common.size());
+        assertEquals("common1", common.get(0).getName());
+        assertEquals("common2", common.get(1).getName());
+    }
+
+    @Test
+    void getCommonFilms_shouldReturnEmptyListWhenNoCommonFilms() {
+        User user1 = userController.create(createTestUser("u3"));
+        User user2 = userController.create(createTestUser("u4"));
+
+        Film film1 = createTestFilm();
+        film1.setName("onlyUser1");
+        Film f1 = controller.create(film1);
+
+        Film film2 = createTestFilm();
+        film2.setName("onlyUser2");
+        Film f2 = controller.create(film2);
+
+        controller.addLike(f1.getId(), user1.getId());
+        controller.addLike(f2.getId(), user2.getId());
+
+        List<Film> common = controller.getCommonFilms(user1.getId(), user2.getId());
+
+        assertTrue(common.isEmpty());
+    }
+
+    @Test
+    void getCommonFilms_shouldThrowWhenUserNotFound() {
+        assertThrows(NotFoundException.class,
+                () -> controller.getCommonFilms(999L, 1L));
+    }
+
+    @Test
+    void getCommonFilms_shouldThrowWhenFriendNotFound() {
+        User user1 = userController.create(createTestUser("u5"));
+
+        assertThrows(NotFoundException.class,
+                () -> controller.getCommonFilms(user1.getId(), 999L));
     }
 }

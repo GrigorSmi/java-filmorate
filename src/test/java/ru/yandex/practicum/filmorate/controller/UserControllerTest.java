@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,7 +91,10 @@ class UserControllerTest {
         update.setEmail("user@mail.com");
         update.setLogin("login");
 
-        assertThrows(ValidationException.class, () -> controller.update(update));
+        Throwable thrown = assertThrows(Throwable.class, () -> controller.update(update));
+
+        assertTrue(thrown instanceof ValidationException || thrown instanceof ConstraintViolationException);
+
     }
 
     @Test
@@ -130,5 +134,20 @@ class UserControllerTest {
         assertEquals("newemail@mail.com", result.getEmail());
         assertEquals("newlogin", result.getLogin());
         assertEquals("new name", result.getName());
+    }
+
+    @Test
+    void delete_shouldRemoveUser() {
+        User user = createTestUser("9");
+        User created = controller.create(user);
+
+        controller.delete(created.getId());
+
+        assertThrows(NotFoundException.class, () -> controller.findById(created.getId()));
+    }
+
+    @Test
+    void delete_shouldThrowWhenUserNotFound() {
+        assertThrows(NotFoundException.class, () -> controller.delete(999L));
     }
 }

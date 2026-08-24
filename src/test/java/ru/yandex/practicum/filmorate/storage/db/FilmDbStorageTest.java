@@ -13,6 +13,7 @@ import ru.yandex.practicum.filmorate.model.MpaRating;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -218,7 +219,7 @@ class FilmDbStorageTest {
         List<Film> films = filmStorage.getFilmsByDirector(d.getId(), "likes");
 
         assertThat(films).hasSize(2);
-        assertThat(films.get(0).getId()).isEqualTo(saved1.getId()); // Больше лайков
+        assertThat(films.get(0).getId()).isEqualTo(saved1.getId());
         assertThat(films.get(1).getId()).isEqualTo(saved2.getId());
     }
 
@@ -239,7 +240,94 @@ class FilmDbStorageTest {
         List<Film> films = filmStorage.getFilmsByDirector(d.getId(), "year");
 
         assertThat(films).hasSize(2);
-        assertThat(films.get(0).getId()).isEqualTo(saved1.getId()); // 1993 год
-        assertThat(films.get(1).getId()).isEqualTo(saved2.getId()); // 1997 год
+        assertThat(films.get(0).getId()).isEqualTo(saved1.getId());
+        assertThat(films.get(1).getId()).isEqualTo(saved2.getId());
+    }
+
+    @Test
+    void testSearchByTitle() {
+        Film f1 = createFilm("Крадущийся тигр");
+        filmStorage.add(f1);
+        Film f2 = createFilm("Крадущийся в ночи");
+        filmStorage.add(f2);
+        filmStorage.add(createFilm("Звёздные войны"));
+
+        List<Film> result = filmStorage.search("крад", "title");
+
+        assertThat(result).hasSize(2);
+        assertThat(result).extracting(Film::getName)
+                .containsExactlyInAnyOrder("Крадущийся тигр", "Крадущийся в ночи");
+    }
+
+    @Test
+    void testSearchByDirector() {
+        Director d = createDirector("Тарантино");
+        Film f1 = createFilm("Криминальное чтиво");
+        f1.setDirectors(new HashSet<>(Set.of(d)));
+        filmStorage.add(f1);
+        filmStorage.add(createFilm("Звёздные войны"));
+
+        List<Film> result = filmStorage.search("тарант", "director");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getName()).isEqualTo("Криминальное чтиво");
+    }
+
+    @Test
+    void testSearchByTitleAndDirector() {
+        Director d1 = createDirector("Тарантино");
+        Director d2 = createDirector("Нолан");
+
+        Film f1 = createFilm("Интерстеллар");
+        f1.setDirectors(new HashSet<>(Set.of(d2)));
+        filmStorage.add(f1);
+
+        Film f2 = createFilm("Довод");
+        f2.setDirectors(new HashSet<>(Set.of(d1)));
+        filmStorage.add(f2);
+
+        filmStorage.add(createFilm("Форсаж"));
+
+        List<Film> result = filmStorage.search("н", "director,title");
+
+        assertThat(result).hasSize(2);
+        assertThat(result).extracting(Film::getName)
+                .containsExactlyInAnyOrder("Интерстеллар", "Довод");
+    }
+
+    @Test
+    void testSearchCaseInsensitive() {
+        Film f = createFilm("Крадущийся тигр");
+        filmStorage.add(f);
+
+        List<Film> result = filmStorage.search("КРАД", "title");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getName()).isEqualTo("Крадущийся тигр");
+    }
+
+    @Test
+    void testSearchSortedByPopularity() {
+        Director d = createDirector("Режиссёр");
+
+        Film f1 = createFilm("Популярный");
+        f1.setDirectors(new HashSet<>(Set.of(d)));
+        Film saved1 = filmStorage.add(f1);
+
+        Film f2 = createFilm("Популярный слегка");
+        f2.setDirectors(new HashSet<>(Set.of(d)));
+        Film saved2 = filmStorage.add(f2);
+
+        User u1 = createUser("u1");
+        User u2 = createUser("u2");
+        filmStorage.addLike(saved1.getId(), u1.getId());
+        filmStorage.addLike(saved1.getId(), u2.getId());
+        filmStorage.addLike(saved2.getId(), u1.getId());
+
+        List<Film> result = filmStorage.search("популярн", "title");
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getLikes()).hasSize(2);
+        assertThat(result.get(1).getLikes()).hasSize(1);
     }
 }
