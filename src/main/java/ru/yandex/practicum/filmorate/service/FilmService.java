@@ -3,6 +3,8 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.enums.FeedEventOperation;
+import ru.yandex.practicum.filmorate.enums.FeedEventType;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -21,17 +23,20 @@ public class FilmService {
     private final MpaRatingService mpaService;
     private final GenreService genreService;
     private final DirectorService directorService;
+    private final FeedEventService feedEventService;
 
     public FilmService(@Qualifier("db") FilmStorage filmStorage,
                        @Qualifier("db") UserStorage userStorage,
                        MpaRatingService mpaService,
                        GenreService genreService,
-                       DirectorService directorService) {
+                       DirectorService directorService,
+                       FeedEventService feedEventService) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
         this.mpaService = mpaService;
         this.genreService = genreService;
         this.directorService = directorService;
+        this.feedEventService = feedEventService;
     }
 
     private void validateFilmReferences(Film film) {
@@ -73,12 +78,16 @@ public class FilmService {
         userStorage.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
         filmStorage.addLike(filmId, userId);
+
+        feedEventService.addEvent(userId, FeedEventType.LIKE, FeedEventOperation.ADD, filmId);
     }
 
     public void removeLike(Long filmId, Long userId) {
         userStorage.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
         filmStorage.removeLike(filmId, userId);
+
+        feedEventService.addEvent(userId, FeedEventType.LIKE, FeedEventOperation.REMOVE, filmId);
     }
 
     public List<Film> getPopular(int count) {
@@ -98,6 +107,10 @@ public class FilmService {
         filmStorage.findById(id)
                 .orElseThrow(() -> new NotFoundException("Фильм с id=" + id + " не найден"));
         filmStorage.delete(id);
+
+        if (!feedEventService.deleteByEntityId(FeedEventType.LIKE, id)) {
+            log.warn("При удалении фильма id={} не было удаления событий из ленты!", id);
+        }
     }
 
     public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
@@ -106,6 +119,14 @@ public class FilmService {
             return dbStorage.getFilmsByDirector(directorId, sortBy);
         }
         return List.of();
+    }
+
+    public List<Film> getCommonFilms(Long userId, Long friendId) {
+        userStorage.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
+        userStorage.findById(friendId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + friendId + " не найден"));
+        return filmStorage.getCommonFilms(userId, friendId);
     }
 
     public List<Film> search(String query, String by) {
