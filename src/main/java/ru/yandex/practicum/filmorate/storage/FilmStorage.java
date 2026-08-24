@@ -26,7 +26,9 @@ public interface FilmStorage {
 
     List<Film> getPopular(int count, Long genreId, Integer year);
 
-    List<Film> getFilmsByDirector(Long directorId, String sortBy); // <-- ЭТО БЫЛО ПРОПУЩЕНО
+    List<Film> getFilmsByDirector(Long directorId, String sortBy);
+
+    List<Film> getCommonFilms(Long userId, Long friendId);
 
     List<Film> search(String query, String by);
 }

@@ -13,7 +13,6 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MpaRating;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
-import org.springframework.context.annotation.Primary;
 
 import java.sql.PreparedStatement;
 import java.sql.Statement;
@@ -23,7 +22,6 @@ import java.util.stream.Collectors;
 
 @Repository
 @Qualifier("db")
-@Primary
 public class FilmDbStorage implements FilmStorage {
     private final JdbcTemplate jdbc;
 
@@ -48,8 +46,12 @@ public class FilmDbStorage implements FilmStorage {
     private void enrichFilms(List<Film> films) {
         if (films.isEmpty()) return;
 
-        Set<Long> filmIds = films.stream().map(Film::getId).collect(Collectors.toSet());
-        String inClause = filmIds.stream().map(String::valueOf).collect(Collectors.joining(","));
+        Set<Long> filmIds = films.stream()
+                .map(Film::getId)
+                .collect(Collectors.toSet());
+        String inClause = filmIds.stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
 
         Map<Long, Set<Genre>> genresByFilm = new HashMap<>();
         jdbc.query(
@@ -223,8 +225,6 @@ public class FilmDbStorage implements FilmStorage {
         jdbc.update("DELETE FROM film_directors");
         jdbc.update("DELETE FROM film_genres");
         jdbc.update("DELETE FROM films");
-        // ВАЖНО: очищаем directors, чтобы тесты не падали из-за остаточных данных
-        jdbc.update("DELETE FROM directors");
     }
 
     @Override
@@ -239,7 +239,9 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public List<Film> getPopular(int count, Long genreId, Integer year) {
-        StringBuilder sql = new StringBuilder("SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name AS mpa_name FROM films f JOIN mpa_ratings m ON f.mpa_rating_id = m.id LEFT JOIN likes l ON f.id = l.film_id ");
+        StringBuilder sql = new StringBuilder(
+                "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name AS mpa_name " +
+                "FROM films f JOIN mpa_ratings m ON f.mpa_rating_id = m.id LEFT JOIN likes l ON f.id = l.film_id ");
         List<Object> params = new ArrayList<>();
 
         if (genreId != null) {
@@ -247,11 +249,15 @@ public class FilmDbStorage implements FilmStorage {
             params.add(genreId);
         }
         if (year != null) {
-            if (genreId == null) sql.append("WHERE EXTRACT(YEAR FROM f.release_date) = ? ");
-            else sql.append("AND EXTRACT(YEAR FROM f.release_date) = ? ");
+            if (genreId == null) {
+                sql.append("WHERE EXTRACT(YEAR FROM f.release_date) = ? ");
+            } else {
+                sql.append("AND EXTRACT(YEAR FROM f.release_date) = ? ");
+            }
             params.add(year);
         }
-        sql.append("GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name ORDER BY COUNT(l.user_id) DESC, f.id ASC LIMIT ?");
+        sql.append("GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name " +
+                   "ORDER BY COUNT(l.user_id) DESC, f.id ASC LIMIT ?");
         params.add(count);
 
         List<Film> films = jdbc.query(sql.toString(), filmRowMapper, params.toArray());
@@ -284,6 +290,26 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
+    public List<Film> getCommonFilms(Long userId, Long friendId) {
+        List<Film> films = jdbc.query(
+                "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name AS mpa_name " +
+                        "FROM films f " +
+                        "JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
+                        "JOIN ( " +
+                        "  SELECT l1.film_id FROM likes l1 " +
+                        "  JOIN likes l2 ON l1.film_id = l2.film_id " +
+                        "  WHERE l1.user_id = ? AND l2.user_id = ? " +
+                        ") common ON f.id = common.film_id " +
+                        "LEFT JOIN likes l ON f.id = l.film_id " +
+                        "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name " +
+                        "ORDER BY COUNT(DISTINCT l.user_id) DESC, f.id",
+                filmRowMapper, userId, friendId
+        );
+        enrichFilms(films);
+        return films;
+    }
+
+    @Override
     public List<Film> search(String query, String by) {
         String likePattern = "%" + query.toLowerCase() + "%";
         String sql;
@@ -307,13 +333,15 @@ public class FilmDbStorage implements FilmStorage {
                     "WHERE LOWER(f.name) LIKE ? OR LOWER(d.name) LIKE ? " +
                     "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name " +
                     "ORDER BY COUNT(DISTINCT l.user_id) DESC, f.id";
-            return enrichAndReturn(jdbc.query(sql, filmRowMapper, likePattern, likePattern));
+            return enrichAndReturn(
+                    jdbc.query(sql, filmRowMapper, likePattern, likePattern));
         } else if (searchTitle) {
             sql = base +
                     "WHERE LOWER(f.name) LIKE ? " +
                     "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name " +
                     "ORDER BY COUNT(DISTINCT l.user_id) DESC, f.id";
-            return enrichAndReturn(jdbc.query(sql, filmRowMapper, likePattern));
+            return enrichAndReturn(
+                    jdbc.query(sql, filmRowMapper, likePattern));
         } else {
             sql = base +
                     "JOIN film_directors fd ON f.id = fd.film_id " +
@@ -321,7 +349,8 @@ public class FilmDbStorage implements FilmStorage {
                     "WHERE LOWER(d.name) LIKE ? " +
                     "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name " +
                     "ORDER BY COUNT(DISTINCT l.user_id) DESC, f.id";
-            return enrichAndReturn(jdbc.query(sql, filmRowMapper, likePattern));
+            return enrichAndReturn(
+                    jdbc.query(sql, filmRowMapper, likePattern));
         }
     }
 

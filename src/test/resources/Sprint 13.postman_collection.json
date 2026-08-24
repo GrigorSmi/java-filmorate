@@ -1,0 +1,201 @@
+{
+  "info": {
+    "_postman_id": "e04f9667-dd02-4e2c-aaa5-f29917d2bf8f",
+    "name": "Sprint 13",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "14280768"
+  },
+  "item": [
+    {
+      "name": "Directors",
+      "item": [
+        {
+          "name": "Get directors",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"nisi\",\r\n  \"description\": \"adipisicing\",\r\n  \"releaseDate\": \"1967-03-25\",\r\n  \"duration\": 100\r\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/directors",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "directors"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create director",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"id\": 1,\r\n\"name\": \"New director\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/directors",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "directors"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update director",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"id\": 1,\r\n\"name\": \"Updated director\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/directors",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "directors"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete director",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"id\": 1,\r\n\"name\": \"Updated director\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/directors/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "directors",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Feed",
+      "item": [
+        {
+          "name": "01 CreateUser",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"login\": \"doloreUpdate2\",\r\n    \"email\": \"mail@yandex.ru\",\r\n    \"name\": \"est adipisicing\",\r\n    \"birthday\": \"1976-09-20\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02 createFilmWithGenres",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Test1\",\r\n  \"description\": \"adipisicing\",\r\n  \"releaseDate\": \"1967-03-25\",\r\n  \"duration\": 100,\r\n  \"genres\": [\r\n    {\"id\": 3},\r\n    {\"id\": 5}\r\n  ],\r\n  \"mpa\": {\r\n    \"id\": 3\r\n  }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/films",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "films"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03 Get user feed",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"id\": 1,\r\n\"name\": \"New director\"\r\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/1/feed",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "1",
+                "feed"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

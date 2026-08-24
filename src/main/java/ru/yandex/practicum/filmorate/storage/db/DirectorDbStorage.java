@@ -1,6 +1,5 @@
 package ru.yandex.practicum.filmorate.storage.db;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -15,10 +14,8 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-@Qualifier("db")
 public class DirectorDbStorage implements DirectorStorage {
     private final JdbcTemplate jdbc;
-
     private final RowMapper<Director> directorRowMapper = (rs, rowNum) -> {
         Director director = new Director();
         director.setId(rs.getLong("id"));
@@ -31,7 +28,18 @@ public class DirectorDbStorage implements DirectorStorage {
     }
 
     @Override
-    public Director create(Director director) {
+    public List<Director> findAll() {
+        return jdbc.query("SELECT id, name FROM directors ORDER BY id", directorRowMapper);
+    }
+
+    @Override
+    public Optional<Director> findById(Long id) {
+        List<Director> result = jdbc.query("SELECT id, name FROM directors WHERE id = ?", directorRowMapper, id);
+        return result.stream().findFirst();
+    }
+
+    @Override
+    public Director add(Director director) {
         String sql = "INSERT INTO directors (name) VALUES (?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbc.update(connection -> {
@@ -52,17 +60,5 @@ public class DirectorDbStorage implements DirectorStorage {
     @Override
     public void delete(Long id) {
         jdbc.update("DELETE FROM directors WHERE id = ?", id);
-    }
-
-    @Override
-    public Optional<Director> getById(Long id) {
-        return jdbc.query("SELECT id, name FROM directors WHERE id = ?", directorRowMapper, id)
-                .stream()
-                .findFirst();
-    }
-
-    @Override
-    public List<Director> getAll() {
-        return jdbc.query("SELECT id, name FROM directors ORDER BY id", directorRowMapper);
     }
 }

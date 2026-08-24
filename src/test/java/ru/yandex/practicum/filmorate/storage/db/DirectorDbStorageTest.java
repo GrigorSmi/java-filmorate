@@ -30,57 +30,60 @@ class DirectorDbStorageTest {
     }
 
     @Test
-    void testCreate() {
-        Director director = new Director();
-        director.setName("Тарантино");
-        Director saved = directorStorage.create(director);
-        assertThat(saved.getId()).isNotNull();
-        assertThat(saved.getName()).isEqualTo("Тарантино");
+    void testFindAll() {
+        Director d1 = new Director();
+        d1.setName("Director 1");
+        directorStorage.add(d1);
+
+        Director d2 = new Director();
+        d2.setName("Director 2");
+        directorStorage.add(d2);
+
+        List<Director> directors = directorStorage.findAll();
+
+        assertThat(directors).hasSize(2);
     }
 
     @Test
-    void testGetById() {
+    void testFindById() {
         Director director = new Director();
-        director.setName("Нолан");
-        Director saved = directorStorage.create(director);
-        Optional<Director> found = directorStorage.getById(saved.getId());
+        director.setName("Test Director");
+        Director saved = directorStorage.add(director);
+
+        Optional<Director> found = directorStorage.findById(saved.getId());
+
         assertThat(found).isPresent();
         assertThat(found.get().getId()).isEqualTo(saved.getId());
-        assertThat(found.get().getName()).isEqualTo("Нолан");
+        assertThat(found.get().getName()).isEqualTo("Test Director");
     }
 
     @Test
-    void testGetByIdNotFound() {
-        Optional<Director> found = directorStorage.getById(9999L);
+    void testFindByIdNotFound() {
+        Optional<Director> found = directorStorage.findById(9999L);
+
         assertThat(found).isEmpty();
     }
 
     @Test
-    void testGetAll() {
-        jdbc.update("DELETE FROM directors");
+    void testAdd() {
+        Director director = new Director();
+        director.setName("New Director");
+        Director saved = directorStorage.add(director);
 
-        Director d1 = new Director();
-        d1.setName("Режиссёр 1");
-        directorStorage.create(d1);
-
-        Director d2 = new Director();
-        d2.setName("Режиссёр 2");
-        directorStorage.create(d2);
-
-        List<Director> directors = directorStorage.getAll();
-        assertThat(directors).hasSize(2);
+        assertThat(saved.getId()).isNotNull();
+        assertThat(saved.getName()).isEqualTo("New Director");
     }
 
     @Test
     void testUpdate() {
         Director director = new Director();
         director.setName("Original");
-        Director saved = directorStorage.create(director);
+        Director saved = directorStorage.add(director);
 
         saved.setName("Updated");
         directorStorage.update(saved);
 
-        Optional<Director> found = directorStorage.getById(saved.getId());
+        Optional<Director> found = directorStorage.findById(saved.getId());
         assertThat(found).isPresent();
         assertThat(found.get().getName()).isEqualTo("Updated");
     }
@@ -89,10 +92,10 @@ class DirectorDbStorageTest {
     void testDelete() {
         Director director = new Director();
         director.setName("ToDelete");
-        Director saved = directorStorage.create(director);
+        Director saved = directorStorage.add(director);
 
         directorStorage.delete(saved.getId());
 
-        assertThat(directorStorage.getById(saved.getId())).isEmpty();
+        assertThat(directorStorage.findById(saved.getId())).isEmpty();
     }
 }

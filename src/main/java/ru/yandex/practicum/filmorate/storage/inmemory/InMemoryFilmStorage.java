@@ -1,15 +1,23 @@
-package ru.yandex.practicum.filmorate.storage;
+package ru.yandex.practicum.filmorate.storage.inmemory;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.storage.FilmStorage;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Component
+@Qualifier("memory")
 public class InMemoryFilmStorage implements FilmStorage {
     private final Map<Long, Film> films = new HashMap<>();
     private long nextId = 1;
@@ -86,13 +94,23 @@ public class InMemoryFilmStorage implements FilmStorage {
                 .filter(film -> year == null || (film.getReleaseDate() != null && film.getReleaseDate().getYear() == year))
                 .sorted((a, b) -> Integer.compare(b.getLikes().size(), a.getLikes().size()))
                 .limit(count)
-                .toList(); // В Java 21 .toList() работает отлично и чище, чем Collectors.toList()
+                .toList();
     }
 
     @Override
     public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
-        // Для InMemory-хранилища можно оставить заглушку или простую реализацию
-        return Collections.emptyList();
+        return List.of();
+    }
+
+    @Override
+    public List<Film> getCommonFilms(Long userId, Long friendId) {
+        return films.values().stream()
+                .filter(f -> f.getLikes() != null && f.getLikes().contains(userId) && f.getLikes().contains(friendId))
+                .sorted((a, b) -> {
+                    int cmp = Integer.compare(b.getLikes().size(), a.getLikes().size());
+                    return cmp != 0 ? cmp : Long.compare(a.getId(), b.getId());
+                })
+                .toList();
     }
 
     @Override

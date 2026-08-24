@@ -6,14 +6,13 @@ import java.util.List;
 import java.util.Optional;
 
 public interface DirectorStorage {
+    List<Director> findAll();
 
-    Director create(Director director);
+    Optional<Director> findById(Long id);
+
+    Director add(Director director);
 
     Director update(Director director);
 
     void delete(Long id);
-
-    Optional<Director> getById(Long id);
-
-    List<Director> getAll();
 }
