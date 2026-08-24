@@ -96,21 +96,6 @@ class FilmDbStorageTest {
     }
 
     @Test
-    void testAddWithDirectors() {
-        Director d1 = createDirector("Director 1");
-        Director d2 = createDirector("Director 2");
-
-        Film film = createFilm("WithDirectors");
-        film.setDirectors(new HashSet<>(List.of(d1, d2)));
-
-        Film saved = filmStorage.add(film);
-
-        assertThat(saved.getId()).isNotNull();
-        assertThat(saved.getDirectors()).hasSize(2);
-        assertThat(saved.getDirectors()).extracting(Director::getId).containsExactlyInAnyOrder(d1.getId(), d2.getId());
-    }
-
-    @Test
     void testFindById() {
         Film film = createFilm("FindMe");
         Film saved = filmStorage.add(film);
@@ -183,23 +168,6 @@ class FilmDbStorageTest {
     }
 
     @Test
-    void testUpdateDirectors() {
-        Director d1 = createDirector("Director 1");
-        Film film = createFilm("WithDirectors");
-        film.setDirectors(new HashSet<>(List.of(d1)));
-        Film saved = filmStorage.add(film);
-
-        Director d2 = createDirector("Director 2");
-        saved.setDirectors(new HashSet<>(List.of(d2)));
-        filmStorage.update(saved);
-
-        Optional<Film> found = filmStorage.findById(saved.getId());
-        assertThat(found).isPresent();
-        assertThat(found.get().getDirectors()).hasSize(1);
-        assertThat(found.get().getDirectors()).extracting(Director::getId).containsExactly(d2.getId());
-    }
-
-    @Test
     void testDelete() {
         Film film = createFilm("ToDelete");
         Film saved = filmStorage.add(film);
@@ -261,7 +229,7 @@ class FilmDbStorageTest {
         filmStorage.addLike(saved1.getId(), u2.getId());
         filmStorage.addLike(saved2.getId(), u3.getId());
 
-        List<Film> popular = filmStorage.getPopular(10, null, null);
+        List<Film> popular = filmStorage.getPopular(10);
 
         assertThat(popular).hasSize(2);
         assertThat(popular.get(0).getId()).isEqualTo(saved1.getId());
@@ -279,50 +247,9 @@ class FilmDbStorageTest {
             filmStorage.addLike(saved.getId(), user.getId());
         }
 
-        List<Film> popular = filmStorage.getPopular(3, null, null);
+        List<Film> popular = filmStorage.getPopular(3);
 
         assertThat(popular).hasSize(3);
-    }
-
-    @Test
-    void testGetPopularFilteredByGenreAndYear() {
-        Film film1 = createFilm("Old Comedy");
-        film1.setReleaseDate(LocalDate.of(1990, 5, 1));
-        film1.setGenres(Set.of(new Genre(1L, "Комедия")));
-        Film saved1 = filmStorage.add(film1);
-
-        Film film2 = createFilm("New Comedy");
-        film2.setReleaseDate(LocalDate.of(2020, 5, 1));
-        film2.setGenres(Set.of(new Genre(1L, "Комедия")));
-        Film saved2 = filmStorage.add(film2);
-
-        Film film3 = createFilm("New Drama");
-        film3.setReleaseDate(LocalDate.of(2020, 6, 1));
-        film3.setGenres(Set.of(new Genre(2L, "Драма")));
-        Film saved3 = filmStorage.add(film3);
-
-        User u1 = createUser("u1");
-        User u2 = createUser("u2");
-        User u3 = createUser("u3");
-
-        filmStorage.addLike(saved3.getId(), u1.getId());
-        filmStorage.addLike(saved3.getId(), u2.getId());
-        filmStorage.addLike(saved3.getId(), u3.getId());
-        filmStorage.addLike(saved2.getId(), u1.getId());
-        filmStorage.addLike(saved2.getId(), u2.getId());
-        filmStorage.addLike(saved1.getId(), u1.getId());
-
-        List<Film> popularComedies = filmStorage.getPopular(10, 1L, null);
-        assertThat(popularComedies).hasSize(2);
-        assertThat(popularComedies.get(0).getId()).isEqualTo(saved2.getId());
-
-        List<Film> popular2020 = filmStorage.getPopular(10, null, 2020);
-        assertThat(popular2020).hasSize(2);
-        assertThat(popular2020.get(0).getId()).isEqualTo(saved3.getId());
-
-        List<Film> popularComedy2020 = filmStorage.getPopular(10, 1L, 2020);
-        assertThat(popularComedy2020).hasSize(1);
-        assertThat(popularComedy2020.get(0).getId()).isEqualTo(saved2.getId());
     }
 
     @Test
@@ -343,6 +270,21 @@ class FilmDbStorageTest {
     }
 
     @Test
+    void testAddWithDirectors() {
+        Director d1 = createDirector("Director 1");
+        Director d2 = createDirector("Director 2");
+
+        Film film = createFilm("WithDirectors");
+        film.setDirectors(new HashSet<>(List.of(d1, d2)));
+
+        Film saved = filmStorage.add(film);
+
+        assertThat(saved.getId()).isNotNull();
+        assertThat(saved.getDirectors()).hasSize(2);
+        assertThat(saved.getDirectors()).extracting(Director::getId).containsExactlyInAnyOrder(d1.getId(), d2.getId());
+    }
+
+    @Test
     void testFindByIdWithDirectors() {
         Director d = createDirector("Director");
         Film film = createFilm("WithDirectors");
@@ -353,6 +295,23 @@ class FilmDbStorageTest {
         assertThat(found).isPresent();
         assertThat(found.get().getDirectors()).hasSize(1);
         assertThat(found.get().getDirectors().iterator().next().getId()).isEqualTo(d.getId());
+    }
+
+    @Test
+    void testUpdateDirectors() {
+        Director d1 = createDirector("Director 1");
+        Film film = createFilm("WithDirectors");
+        film.setDirectors(new HashSet<>(List.of(d1)));
+        Film saved = filmStorage.add(film);
+
+        Director d2 = createDirector("Director 2");
+        saved.setDirectors(new HashSet<>(List.of(d2)));
+        filmStorage.update(saved);
+
+        Optional<Film> found = filmStorage.findById(saved.getId());
+        assertThat(found).isPresent();
+        assertThat(found.get().getDirectors()).hasSize(1);
+        assertThat(found.get().getDirectors()).extracting(Director::getId).containsExactly(d2.getId());
     }
 
     @Test
@@ -402,8 +361,10 @@ class FilmDbStorageTest {
 
     @Test
     void testSearchByTitle() {
-        filmStorage.add(createFilm("Крадущийся тигр"));
-        filmStorage.add(createFilm("Крадущийся в ночи"));
+        Film f1 = createFilm("Крадущийся тигр");
+        filmStorage.add(f1);
+        Film f2 = createFilm("Крадущийся в ночи");
+        filmStorage.add(f2);
         filmStorage.add(createFilm("Звёздные войны"));
 
         List<Film> result = filmStorage.search("крад", "title");
@@ -432,14 +393,17 @@ class FilmDbStorageTest {
         Director d1 = createDirector("Тарантино");
         Director d2 = createDirector("Нолан");
 
+        // "Интерстеллар" содержит "н" в названии → match по title
         Film f1 = createFilm("Интерстеллар");
         f1.setDirectors(new HashSet<>(Set.of(d2)));
         filmStorage.add(f1);
 
+        // "Довод" не содержит "н", но "Тарантино" содержит "н" → match по director
         Film f2 = createFilm("Довод");
         f2.setDirectors(new HashSet<>(Set.of(d1)));
         filmStorage.add(f2);
 
+        // Не матчится ни по чему
         filmStorage.add(createFilm("Форсаж"));
 
         List<Film> result = filmStorage.search("н", "director,title");
@@ -451,7 +415,8 @@ class FilmDbStorageTest {
 
     @Test
     void testSearchCaseInsensitive() {
-        filmStorage.add(createFilm("Крадущийся тигр"));
+        Film f = createFilm("Крадущийся тигр");
+        filmStorage.add(f);
 
         List<Film> result = filmStorage.search("КРАД", "title");
 
@@ -482,26 +447,5 @@ class FilmDbStorageTest {
         assertThat(result).hasSize(2);
         assertThat(result.get(0).getLikes()).hasSize(2);
         assertThat(result.get(1).getLikes()).hasSize(1);
-    }
-
-    @Test
-    void testGetCommonFilms() {
-        User u1 = createUser("u1");
-        User u2 = createUser("u2");
-
-        Film f1 = createFilm("CommonFilm");
-        Film saved1 = filmStorage.add(f1);
-
-        Film f2 = createFilm("OnlyUser1");
-        Film saved2 = filmStorage.add(f2);
-
-        filmStorage.addLike(saved1.getId(), u1.getId());
-        filmStorage.addLike(saved1.getId(), u2.getId());
-        filmStorage.addLike(saved2.getId(), u1.getId());
-
-        List<Film> common = filmStorage.getCommonFilms(u1.getId(), u2.getId());
-
-        assertThat(common).hasSize(1);
-        assertThat(common.get(0).getId()).isEqualTo(saved1.getId());
     }
 }

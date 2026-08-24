@@ -4,13 +4,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Slf4j
 @Component
@@ -56,5 +54,10 @@ public class InMemoryUserStorage implements UserStorage {
     public void clearAll() {
         users.clear();
         nextId = 1;
+    }
+
+    @Override
+    public List<Film> getRecommendations(Long userId) {
+        return Collections.emptyList();
     }
 }
