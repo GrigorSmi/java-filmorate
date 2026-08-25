@@ -47,8 +47,9 @@ public class ReviewService {
 
     public Review update(Review review) {
         log.info("Обновление отзыва: {}", review);
+        Review existing = getById(review.getId());
         Review updated = reviewStorage.update(review);
-        feedEventService.addEvent(review.getUserId(), FeedEventType.REVIEW, FeedEventOperation.UPDATE, review.getId());
+        feedEventService.addEvent(existing.getUserId(), FeedEventType.REVIEW, FeedEventOperation.UPDATE, review.getId());
         return updated;
     }
 
