@@ -60,7 +60,7 @@ public class ReviewDbStorage implements ReviewStorage {
     public Review update(Review review) {
         String sql = "UPDATE reviews SET content = ?, is_positive = ? WHERE review_id = ?";
         jdbc.update(sql, review.getContent(), review.getIsPositive(), review.getId());
-        return review;
+        return findById(review.getId()).orElse(review);
     }
 
     @Override

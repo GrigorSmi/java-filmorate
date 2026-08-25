@@ -102,7 +102,6 @@ public class FilmService {
     public void delete(Long id) {
         filmStorage.findById(id)
                 .orElseThrow(() -> new NotFoundException("Фильм с id=" + id + " не найден"));
-        feedEventService.deleteByEntityId(FeedEventType.LIKE, id);
         filmStorage.delete(id);
     }
 

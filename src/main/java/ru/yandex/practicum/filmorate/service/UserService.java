@@ -101,7 +101,6 @@ public class UserService {
     public void delete(Long id) {
         userStorage.findById(id)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
-        feedEventService.deleteByEntityId(FeedEventType.FRIEND, id);
         userStorage.delete(id);
     }
 
