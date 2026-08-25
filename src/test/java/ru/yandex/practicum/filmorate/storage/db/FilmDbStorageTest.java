@@ -229,7 +229,7 @@ class FilmDbStorageTest {
         filmStorage.addLike(saved1.getId(), u2.getId());
         filmStorage.addLike(saved2.getId(), u3.getId());
 
-        List<Film> popular = filmStorage.getPopular(10);
+        List<Film> popular = filmStorage.getPopular(10, null, null);
 
         assertThat(popular).hasSize(2);
         assertThat(popular.get(0).getId()).isEqualTo(saved1.getId());
@@ -247,7 +247,7 @@ class FilmDbStorageTest {
             filmStorage.addLike(saved.getId(), user.getId());
         }
 
-        List<Film> popular = filmStorage.getPopular(3);
+        List<Film> popular = filmStorage.getPopular(3, null, null);
 
         assertThat(popular).hasSize(3);
     }

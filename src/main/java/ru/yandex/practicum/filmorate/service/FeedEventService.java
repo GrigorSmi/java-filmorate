@@ -12,7 +12,6 @@ import ru.yandex.practicum.filmorate.model.FeedEvent;
 import ru.yandex.practicum.filmorate.storage.FeedEventStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -51,7 +50,7 @@ public class FeedEventService {
                 );
 
         FeedEvent event = feedEventStorage.add(FeedEvent.builder()
-                .timestamp(LocalDateTime.now())
+                .timestamp(System.currentTimeMillis())
                 .userId(userId)
                 .eventType(eventType)
                 .operation(operation)

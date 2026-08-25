@@ -3,12 +3,13 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.enums.FeedEventOperation;
+import ru.yandex.practicum.filmorate.enums.FeedEventType;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
-import ru.yandex.practicum.filmorate.storage.db.FilmDbStorage;
 
 import java.util.Collection;
 import java.util.List;
@@ -21,17 +22,20 @@ public class FilmService {
     private final MpaRatingService mpaService;
     private final GenreService genreService;
     private final DirectorService directorService;
+    private final FeedEventService feedEventService;
 
     public FilmService(@Qualifier("db") FilmStorage filmStorage,
                        @Qualifier("db") UserStorage userStorage,
                        MpaRatingService mpaService,
                        GenreService genreService,
-                       DirectorService directorService) {
+                       DirectorService directorService,
+                       FeedEventService feedEventService) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
         this.mpaService = mpaService;
         this.genreService = genreService;
         this.directorService = directorService;
+        this.feedEventService = feedEventService;
     }
 
     private void validateFilmReferences(Film film) {
@@ -73,39 +77,38 @@ public class FilmService {
         userStorage.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
         filmStorage.addLike(filmId, userId);
+        feedEventService.addEvent(userId, FeedEventType.LIKE, FeedEventOperation.ADD, filmId);
     }
 
     public void removeLike(Long filmId, Long userId) {
         userStorage.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
         filmStorage.removeLike(filmId, userId);
+        feedEventService.addEvent(userId, FeedEventType.LIKE, FeedEventOperation.REMOVE, filmId);
     }
 
-    public List<Film> getPopular(int count) {
-        if (filmStorage instanceof FilmDbStorage dbStorage) {
-            return dbStorage.getPopular(count);
-        }
-        return filmStorage.findAll().stream()
-                .sorted((a, b) -> {
-                    int cmp = Integer.compare(b.getLikes().size(), a.getLikes().size());
-                    return cmp != 0 ? cmp : Long.compare(a.getId(), b.getId());
-                })
-                .limit(count)
-                .toList();
+    public List<Film> getPopular(int count, Long genreId, Integer year) {
+        return filmStorage.getPopular(count, genreId, year);
+    }
+
+    public List<Film> getCommonFilms(Long userId, Long friendId) {
+        userStorage.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
+        userStorage.findById(friendId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + friendId + " не найден"));
+        return filmStorage.getCommonFilms(userId, friendId);
     }
 
     public void delete(Long id) {
         filmStorage.findById(id)
                 .orElseThrow(() -> new NotFoundException("Фильм с id=" + id + " не найден"));
+        feedEventService.deleteByEntityId(FeedEventType.LIKE, id);
         filmStorage.delete(id);
     }
 
     public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
         directorService.findById(directorId);
-        if (filmStorage instanceof FilmDbStorage dbStorage) {
-            return dbStorage.getFilmsByDirector(directorId, sortBy);
-        }
-        return List.of();
+        return filmStorage.getFilmsByDirector(directorId, sortBy);
     }
 
     public List<Film> search(String query, String by) {

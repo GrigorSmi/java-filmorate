@@ -1,6 +1,6 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import jakarta.validation.Valid; // <-- Не забудь этот импорт
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -18,13 +18,13 @@ public class ReviewController {
     private final ReviewService reviewService;
 
     @PostMapping
-    public Review create(@Valid @RequestBody Review review) { // <-- ДОБАВЛЕНО @Valid
+    public Review create(@Valid @RequestBody Review review) {
         log.info("Создание отзыва: {}", review);
         return reviewService.create(review);
     }
 
     @PutMapping
-    public Review update(@Valid @RequestBody Review review) { // <-- ДОБАВЛЕНО @Valid
+    public Review update(@Valid @RequestBody Review review) {
         log.info("Обновление отзыва: {}", review);
         return reviewService.update(review);
     }
@@ -46,5 +46,29 @@ public class ReviewController {
                                            @RequestParam(defaultValue = "10") Integer count) {
         log.info("Запрос отзывов: filmId={}, count={}", filmId, count);
         return reviewService.getReviewsByFilmId(filmId, count);
+    }
+
+    @PutMapping("/{id}/like/{userId}")
+    public void addLike(@PathVariable Long id, @PathVariable Long userId) {
+        log.info("Лайк отзыва id={} от userId={}", id, userId);
+        reviewService.addLike(id, userId);
+    }
+
+    @PutMapping("/{id}/dislike/{userId}")
+    public void addDislike(@PathVariable Long id, @PathVariable Long userId) {
+        log.info("Дизлайк отзыва id={} от userId={}", id, userId);
+        reviewService.addDislike(id, userId);
+    }
+
+    @DeleteMapping("/{id}/like/{userId}")
+    public void removeLike(@PathVariable Long id, @PathVariable Long userId) {
+        log.info("Удаление лайка отзыва id={} от userId={}", id, userId);
+        reviewService.removeLike(id, userId);
+    }
+
+    @DeleteMapping("/{id}/dislike/{userId}")
+    public void removeDislike(@PathVariable Long id, @PathVariable Long userId) {
+        log.info("Удаление дизлайка отзыва id={} от userId={}", id, userId);
+        reviewService.removeDislike(id, userId);
     }
 }

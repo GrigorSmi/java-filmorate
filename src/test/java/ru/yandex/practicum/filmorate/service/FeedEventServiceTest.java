@@ -303,8 +303,8 @@ class FeedEventServiceTest {
         assertEquals(FeedEventOperation.REMOVE, events.get(0).getOperation());
         assertEquals(FeedEventType.FRIEND, events.get(2).getEventType());
         assertEquals(FeedEventOperation.ADD, events.get(2).getOperation());
-        assertFalse(events.get(0).getTimestamp().isBefore(events.get(1).getTimestamp()));
-        assertFalse(events.get(1).getTimestamp().isBefore(events.get(2).getTimestamp()));
+        assertFalse(events.get(0).getTimestamp() < events.get(1).getTimestamp());
+        assertFalse(events.get(1).getTimestamp() < events.get(2).getTimestamp());
     }
 
     private List<FeedEvent> likeEvents(Long userId) {

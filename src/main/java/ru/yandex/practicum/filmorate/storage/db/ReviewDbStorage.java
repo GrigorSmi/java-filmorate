@@ -89,14 +89,14 @@ public class ReviewDbStorage implements ReviewStorage {
 
     @Override
     public void addLike(Long reviewId, Long userId) {
-        String checkSql = "SELECT COUNT(*) FROM reviews_likes WHERE review_id = ? AND user_id = ?";
+        String checkSql = "SELECT COUNT(*) FROM review_likes WHERE review_id = ? AND user_id = ?";
         Integer count = jdbc.queryForObject(checkSql, Integer.class, reviewId, userId);
 
         if (count != null && count > 0) {
-            String updateSql = "UPDATE reviews_likes SET is_like = true WHERE review_id = ? AND user_id = ?";
+            String updateSql = "UPDATE review_likes SET is_positive = true WHERE review_id = ? AND user_id = ?";
             jdbc.update(updateSql, reviewId, userId);
         } else {
-            String insertSql = "INSERT INTO reviews_likes (review_id, user_id, is_like) VALUES (?, ?, true)";
+            String insertSql = "INSERT INTO review_likes (review_id, user_id, is_positive) VALUES (?, ?, true)";
             jdbc.update(insertSql, reviewId, userId);
         }
 
@@ -106,7 +106,7 @@ public class ReviewDbStorage implements ReviewStorage {
 
     @Override
     public void removeLike(Long reviewId, Long userId) {
-        String deleteSql = "DELETE FROM reviews_likes WHERE review_id = ? AND user_id = ? AND is_like = true";
+        String deleteSql = "DELETE FROM review_likes WHERE review_id = ? AND user_id = ? AND is_positive = true";
         jdbc.update(deleteSql, reviewId, userId);
 
         String updateUsefulSql = "UPDATE reviews SET useful = useful - 1 WHERE review_id = ?";
@@ -115,14 +115,14 @@ public class ReviewDbStorage implements ReviewStorage {
 
     @Override
     public void addDislike(Long reviewId, Long userId) {
-        String checkSql = "SELECT COUNT(*) FROM reviews_likes WHERE review_id = ? AND user_id = ?";
+        String checkSql = "SELECT COUNT(*) FROM review_likes WHERE review_id = ? AND user_id = ?";
         Integer count = jdbc.queryForObject(checkSql, Integer.class, reviewId, userId);
 
         if (count != null && count > 0) {
-            String updateSql = "UPDATE reviews_likes SET is_like = false WHERE review_id = ? AND user_id = ?";
+            String updateSql = "UPDATE review_likes SET is_positive = false WHERE review_id = ? AND user_id = ?";
             jdbc.update(updateSql, reviewId, userId);
         } else {
-            String insertSql = "INSERT INTO reviews_likes (review_id, user_id, is_like) VALUES (?, ?, false)";
+            String insertSql = "INSERT INTO review_likes (review_id, user_id, is_positive) VALUES (?, ?, false)";
             jdbc.update(insertSql, reviewId, userId);
         }
 
@@ -132,7 +132,7 @@ public class ReviewDbStorage implements ReviewStorage {
 
     @Override
     public void removeDislike(Long reviewId, Long userId) {
-        String deleteSql = "DELETE FROM reviews_likes WHERE review_id = ? AND user_id = ? AND is_like = false";
+        String deleteSql = "DELETE FROM review_likes WHERE review_id = ? AND user_id = ? AND is_positive = false";
         jdbc.update(deleteSql, reviewId, userId);
 
         String updateUsefulSql = "UPDATE reviews SET useful = useful + 1 WHERE review_id = ?";

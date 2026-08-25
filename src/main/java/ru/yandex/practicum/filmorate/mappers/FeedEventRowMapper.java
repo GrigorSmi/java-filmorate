@@ -14,7 +14,7 @@ public class FeedEventRowMapper implements RowMapper<FeedEvent> {
     @Override
     public FeedEvent mapRow(ResultSet rs, int rowNum) throws SQLException {
         return FeedEvent.builder()
-                .timestamp(rs.getTimestamp("timestamp").toLocalDateTime())
+                .timestamp(rs.getLong("timestamp"))
                 .userId(rs.getLong("user_id"))
                 .eventType(FeedEventType.valueOf(rs.getString("event_type")))
                 .operation(FeedEventOperation.valueOf(rs.getString("operation")))

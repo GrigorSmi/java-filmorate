@@ -237,16 +237,49 @@ public class FilmDbStorage implements FilmStorage {
         jdbc.update("DELETE FROM likes WHERE film_id = ? AND user_id = ?", filmId, userId);
     }
 
-    public List<Film> getPopular(int count) {
-        List<Film> films = jdbc.query(
+    @Override
+    public List<Film> getPopular(int count, Long genreId, Integer year) {
+        StringBuilder sql = new StringBuilder(
                 "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name AS mpa_name " +
                         "FROM films f " +
                         "JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
                         "LEFT JOIN likes l ON f.id = l.film_id " +
+                        "LEFT JOIN film_genres fg ON f.id = fg.film_id ");
+
+        List<Object> params = new ArrayList<>();
+
+        if (genreId != null) {
+            sql.append("WHERE fg.genre_id = ? ");
+            params.add(genreId);
+        }
+        if (year != null) {
+            sql.append(genreId != null ? "AND " : "WHERE ");
+            sql.append("EXTRACT(YEAR FROM f.release_date) = ? ");
+            params.add(year);
+        }
+
+        sql.append("GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name ");
+        sql.append("ORDER BY COUNT(l.user_id) DESC, f.id ");
+        sql.append("LIMIT ?");
+
+        params.add(count);
+
+        List<Film> films = jdbc.query(sql.toString(), filmRowMapper, params.toArray());
+        enrichFilms(films);
+        return films;
+    }
+
+    @Override
+    public List<Film> getCommonFilms(Long userId, Long friendId) {
+        List<Film> films = jdbc.query(
+                "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name AS mpa_name " +
+                        "FROM films f " +
+                        "JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
+                        "JOIN likes l1 ON f.id = l1.film_id AND l1.user_id = ? " +
+                        "JOIN likes l2 ON f.id = l2.film_id AND l2.user_id = ? " +
                         "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name " +
-                        "ORDER BY COUNT(l.user_id) DESC, f.id " +
-                        "LIMIT ?",
-                filmRowMapper, count
+                        "ORDER BY COUNT(l1.user_id) DESC, f.id",
+                filmRowMapper, userId, friendId
         );
         enrichFilms(films);
         return films;
