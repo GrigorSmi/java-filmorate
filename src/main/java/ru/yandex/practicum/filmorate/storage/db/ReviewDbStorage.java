@@ -15,6 +15,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.List;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -91,9 +92,7 @@ public class ReviewDbStorage implements ReviewStorage {
     @Override
     @Transactional
     public void addLike(Long reviewId, Long userId) {
-        Boolean current = jdbc.queryForObject(
-                "SELECT is_positive FROM review_likes WHERE review_id = ? AND user_id = ?",
-                Boolean.class, reviewId, userId);
+        Boolean current = getCurrentReaction(reviewId, userId);
 
         if (Boolean.TRUE.equals(current)) {
             return;
@@ -113,9 +112,7 @@ public class ReviewDbStorage implements ReviewStorage {
     @Override
     @Transactional
     public void removeLike(Long reviewId, Long userId) {
-        Boolean current = jdbc.queryForObject(
-                "SELECT is_positive FROM review_likes WHERE review_id = ? AND user_id = ?",
-                Boolean.class, reviewId, userId);
+        Boolean current = getCurrentReaction(reviewId, userId);
 
         if (Boolean.TRUE.equals(current)) {
             jdbc.update("DELETE FROM review_likes WHERE review_id = ? AND user_id = ?", reviewId, userId);
@@ -126,9 +123,7 @@ public class ReviewDbStorage implements ReviewStorage {
     @Override
     @Transactional
     public void addDislike(Long reviewId, Long userId) {
-        Boolean current = jdbc.queryForObject(
-                "SELECT is_positive FROM review_likes WHERE review_id = ? AND user_id = ?",
-                Boolean.class, reviewId, userId);
+        Boolean current = getCurrentReaction(reviewId, userId);
 
         if (Boolean.FALSE.equals(current)) {
             return;
@@ -148,13 +143,19 @@ public class ReviewDbStorage implements ReviewStorage {
     @Override
     @Transactional
     public void removeDislike(Long reviewId, Long userId) {
-        Boolean current = jdbc.queryForObject(
-                "SELECT is_positive FROM review_likes WHERE review_id = ? AND user_id = ?",
-                Boolean.class, reviewId, userId);
+        Boolean current = getCurrentReaction(reviewId, userId);
 
         if (Boolean.FALSE.equals(current)) {
             jdbc.update("DELETE FROM review_likes WHERE review_id = ? AND user_id = ?", reviewId, userId);
             jdbc.update("UPDATE reviews SET useful = useful + 1 WHERE review_id = ?", reviewId);
         }
+    }
+
+    private Boolean getCurrentReaction(Long reviewId, Long userId) {
+        List<Boolean> results = jdbc.query(
+                "SELECT is_positive FROM review_likes WHERE review_id = ? AND user_id = ?",
+                (rs, rowNum) -> rs.getBoolean("is_positive"),
+                reviewId, userId);
+        return results.isEmpty() ? null : results.get(0);
     }
 }
