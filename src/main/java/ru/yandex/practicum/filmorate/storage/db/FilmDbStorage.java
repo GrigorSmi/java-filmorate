@@ -259,7 +259,7 @@ public class FilmDbStorage implements FilmStorage {
         }
 
         sql.append("GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name ");
-        sql.append("ORDER BY COUNT(l.user_id) DESC, f.id ");
+        sql.append("ORDER BY COUNT(DISTINCT l.user_id) DESC, f.id ");
         sql.append("LIMIT ?");
 
         params.add(count);
@@ -277,8 +277,9 @@ public class FilmDbStorage implements FilmStorage {
                         "JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
                         "JOIN likes l1 ON f.id = l1.film_id AND l1.user_id = ? " +
                         "JOIN likes l2 ON f.id = l2.film_id AND l2.user_id = ? " +
+                        "LEFT JOIN likes l3 ON f.id = l3.film_id " +
                         "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name " +
-                        "ORDER BY COUNT(l1.user_id) DESC, f.id",
+                        "ORDER BY COUNT(DISTINCT l3.user_id) DESC, f.id",
                 filmRowMapper, userId, friendId
         );
         enrichFilms(films);
