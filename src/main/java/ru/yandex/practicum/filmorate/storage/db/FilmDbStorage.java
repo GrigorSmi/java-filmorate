@@ -83,12 +83,12 @@ public class FilmDbStorage implements FilmStorage {
                 }
         );
 
-        Map<Long, List<Integer>> marksByFilm = new HashMap<>();
+        Map<Long, List<Double>> marksByFilm = new HashMap<>();
         jdbc.query(
                 "SELECT film_id, \"value\" FROM marks WHERE film_id IN (" + inClause + ")",
                 (rs, rowNum) -> {
                     long filmId = rs.getLong("film_id");
-                    marksByFilm.computeIfAbsent(filmId, k -> new ArrayList<>()).add(rs.getInt("value"));
+                    marksByFilm.computeIfAbsent(filmId, k -> new ArrayList<>()).add(rs.getDouble("value"));
                     return null;
                 }
         );
@@ -96,10 +96,10 @@ public class FilmDbStorage implements FilmStorage {
         for (Film film : films) {
             film.setGenres(genresByFilm.getOrDefault(film.getId(), new LinkedHashSet<>()));
             film.setDirectors(directorsByFilm.getOrDefault(film.getId(), new LinkedHashSet<>()));
-            List<Integer> values = marksByFilm.get(film.getId());
+            List<Double> values = marksByFilm.get(film.getId());
             film.setRating(values == null || values.isEmpty()
                     ? null
-                    : values.stream().mapToInt(Integer::intValue).average().orElse(0.0));
+                    : values.stream().mapToDouble(Double::doubleValue).average().orElse(0.0));
         }
     }
 
@@ -231,7 +231,7 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
-    public void addMark(Long filmId, Long userId, int value) {
+    public void addMark(Long filmId, Long userId, double value) {
         jdbc.update("MERGE INTO marks (film_id, user_id, \"value\") KEY (film_id, user_id) VALUES (?, ?, ?)",
                 filmId, userId, value);
     }

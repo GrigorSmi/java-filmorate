@@ -20,7 +20,7 @@ public interface FilmStorage {
 
     void clearAll();
 
-    void addMark(Long filmId, Long userId, int value);
+    void addMark(Long filmId, Long userId, double value);
 
     void removeMark(Long filmId, Long userId);
 

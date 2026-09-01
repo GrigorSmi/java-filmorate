@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS friendships (
 CREATE TABLE IF NOT EXISTS marks (
     film_id BIGINT NOT NULL REFERENCES films(id) ON DELETE CASCADE,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    "value" INT NOT NULL CHECK ("value" BETWEEN 1 AND 10),
+    "value" DOUBLE PRECISION NOT NULL CHECK ("value" BETWEEN 1 AND 10),
     PRIMARY KEY (film_id, user_id)
 );
 

@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 @Qualifier("memory")
 public class InMemoryFilmStorage implements FilmStorage {
     private final Map<Long, Film> films = new HashMap<>();
-    private final Map<Long, Map<Long, Integer>> marksByFilm = new HashMap<>();
+    private final Map<Long, Map<Long, Double>> marksByFilm = new HashMap<>();
     private long nextId = 1;
 
     @Override
@@ -64,12 +64,12 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     @Override
-    public void addMark(Long filmId, Long userId, int value) {
+    public void addMark(Long filmId, Long userId, double value) {
         Film film = films.get(filmId);
         if (film == null) {
             throw new NotFoundException("Фильм с id=" + filmId + " не найден");
         }
-        Map<Long, Integer> marks = marksByFilm.computeIfAbsent(filmId, k -> new HashMap<>());
+        Map<Long, Double> marks = marksByFilm.computeIfAbsent(filmId, k -> new HashMap<>());
         marks.put(userId, value);
         recalcRating(film);
     }
@@ -80,7 +80,7 @@ public class InMemoryFilmStorage implements FilmStorage {
         if (film == null) {
             throw new NotFoundException("Фильм с id=" + filmId + " не найден");
         }
-        Map<Long, Integer> marks = marksByFilm.get(filmId);
+        Map<Long, Double> marks = marksByFilm.get(filmId);
         if (marks != null) {
             marks.remove(userId);
         }
@@ -88,11 +88,11 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     private void recalcRating(Film film) {
-        Map<Long, Integer> marks = marksByFilm.get(film.getId());
+        Map<Long, Double> marks = marksByFilm.get(film.getId());
         if (marks == null || marks.isEmpty()) {
             film.setRating(null);
         } else {
-            double avg = marks.values().stream().mapToInt(Integer::intValue).average().orElse(0.0);
+            double avg = marks.values().stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
             film.setRating(avg);
         }
     }

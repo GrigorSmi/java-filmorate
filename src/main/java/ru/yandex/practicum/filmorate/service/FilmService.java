@@ -73,7 +73,7 @@ public class FilmService {
                 .orElseThrow(() -> new NotFoundException("Фильм с id=" + id + " не найден"));
     }
 
-    public void addMark(Long filmId, Long userId, int value) {
+    public void addMark(Long filmId, Long userId, double value) {
         userStorage.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
         filmStorage.addMark(filmId, userId, value);
