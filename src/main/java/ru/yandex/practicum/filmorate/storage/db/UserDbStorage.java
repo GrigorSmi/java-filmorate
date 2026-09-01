@@ -172,12 +172,12 @@ public class UserDbStorage implements UserStorage {
                     }
             );
 
-            Map<Long, Set<Long>> likesByFilm = new HashMap<>();
+            Map<Long, List<Integer>> marksByFilm = new HashMap<>();
             jdbc.query(
-                    "SELECT film_id, user_id FROM likes WHERE film_id IN (" + inClause + ")",
+                    "SELECT film_id, \"value\" FROM marks WHERE film_id IN (" + inClause + ")",
                     (rs, rowNum) -> {
                         long fId = rs.getLong("film_id");
-                        likesByFilm.computeIfAbsent(fId, k -> new HashSet<>()).add(rs.getLong("user_id"));
+                        marksByFilm.computeIfAbsent(fId, k -> new ArrayList<>()).add(rs.getInt("value"));
                         return null;
                     }
             );
@@ -185,7 +185,10 @@ public class UserDbStorage implements UserStorage {
             for (Film film : films) {
                 film.setGenres(genresByFilm.getOrDefault(film.getId(), new LinkedHashSet<>()));
                 film.setDirectors(directorsByFilm.getOrDefault(film.getId(), new LinkedHashSet<>()));
-                film.setLikes(likesByFilm.getOrDefault(film.getId(), new HashSet<>()));
+                List<Integer> values = marksByFilm.get(film.getId());
+                film.setRating(values == null || values.isEmpty()
+                        ? null
+                        : values.stream().mapToInt(Integer::intValue).average().orElse(0.0));
             }
         }
         return films;

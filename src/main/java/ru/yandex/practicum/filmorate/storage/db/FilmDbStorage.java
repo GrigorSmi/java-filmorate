@@ -83,12 +83,12 @@ public class FilmDbStorage implements FilmStorage {
                 }
         );
 
-        Map<Long, Set<Long>> likesByFilm = new HashMap<>();
+        Map<Long, List<Integer>> marksByFilm = new HashMap<>();
         jdbc.query(
-                "SELECT film_id, user_id FROM likes WHERE film_id IN (" + inClause + ")",
+                "SELECT film_id, \"value\" FROM marks WHERE film_id IN (" + inClause + ")",
                 (rs, rowNum) -> {
                     long filmId = rs.getLong("film_id");
-                    likesByFilm.computeIfAbsent(filmId, k -> new HashSet<>()).add(rs.getLong("user_id"));
+                    marksByFilm.computeIfAbsent(filmId, k -> new ArrayList<>()).add(rs.getInt("value"));
                     return null;
                 }
         );
@@ -96,7 +96,10 @@ public class FilmDbStorage implements FilmStorage {
         for (Film film : films) {
             film.setGenres(genresByFilm.getOrDefault(film.getId(), new LinkedHashSet<>()));
             film.setDirectors(directorsByFilm.getOrDefault(film.getId(), new LinkedHashSet<>()));
-            film.setLikes(likesByFilm.getOrDefault(film.getId(), new HashSet<>()));
+            List<Integer> values = marksByFilm.get(film.getId());
+            film.setRating(values == null || values.isEmpty()
+                    ? null
+                    : values.stream().mapToInt(Integer::intValue).average().orElse(0.0));
         }
     }
 
@@ -221,20 +224,21 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public void clearAll() {
-        jdbc.update("DELETE FROM likes");
+        jdbc.update("DELETE FROM marks");
         jdbc.update("DELETE FROM film_directors");
         jdbc.update("DELETE FROM film_genres");
         jdbc.update("DELETE FROM films");
     }
 
     @Override
-    public void addLike(Long filmId, Long userId) {
-        jdbc.update("MERGE INTO likes (film_id, user_id) KEY (film_id, user_id) VALUES (?, ?)", filmId, userId);
+    public void addMark(Long filmId, Long userId, int value) {
+        jdbc.update("MERGE INTO marks (film_id, user_id, \"value\") KEY (film_id, user_id) VALUES (?, ?, ?)",
+                filmId, userId, value);
     }
 
     @Override
-    public void removeLike(Long filmId, Long userId) {
-        jdbc.update("DELETE FROM likes WHERE film_id = ? AND user_id = ?", filmId, userId);
+    public void removeMark(Long filmId, Long userId) {
+        jdbc.update("DELETE FROM marks WHERE film_id = ? AND user_id = ?", filmId, userId);
     }
 
     @Override

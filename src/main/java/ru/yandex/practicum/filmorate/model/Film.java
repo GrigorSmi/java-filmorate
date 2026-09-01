@@ -63,8 +63,5 @@ public class Film {
     private MpaRating mpa;
 
     @Transient
-    private Set<Long> likes = new HashSet<>();
-
-    @Transient
     private Double rating;
 }

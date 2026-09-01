@@ -73,17 +73,17 @@ public class FilmService {
                 .orElseThrow(() -> new NotFoundException("Фильм с id=" + id + " не найден"));
     }
 
-    public void addLike(Long filmId, Long userId) {
+    public void addMark(Long filmId, Long userId, int value) {
         userStorage.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
-        filmStorage.addLike(filmId, userId);
+        filmStorage.addMark(filmId, userId, value);
         feedEventService.addEvent(userId, FeedEventType.LIKE, FeedEventOperation.ADD, filmId);
     }
 
-    public void removeLike(Long filmId, Long userId) {
+    public void removeMark(Long filmId, Long userId) {
         userStorage.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
-        filmStorage.removeLike(filmId, userId);
+        filmStorage.removeMark(filmId, userId);
         feedEventService.addEvent(userId, FeedEventType.LIKE, FeedEventOperation.REMOVE, filmId);
     }
 
