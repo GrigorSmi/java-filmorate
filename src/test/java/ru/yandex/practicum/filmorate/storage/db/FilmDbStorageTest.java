@@ -446,6 +446,31 @@ class FilmDbStorageTest {
     }
 
     @Test
+    void testGetFilmsByDirectorSortByRate() {
+        Director director = createDirector("DirectorRate");
+
+        Film filmNew = createFilm("Newer");
+        filmNew.setReleaseDate(LocalDate.of(2020, 1, 1));
+        filmNew.setDirectors(new HashSet<>(Set.of(director)));
+        Film savedNew = filmStorage.add(filmNew);
+
+        Film filmOld = createFilm("Older");
+        filmOld.setReleaseDate(LocalDate.of(2010, 1, 1));
+        filmOld.setDirectors(new HashSet<>(Set.of(director)));
+        Film savedOld = filmStorage.add(filmOld);
+
+        User u1 = createUser("u1");
+        filmStorage.addMark(savedNew.getId(), u1.getId(), 10);
+        filmStorage.addMark(savedOld.getId(), u1.getId(), 10);
+
+        List<Film> result = filmStorage.getFilmsByDirector(director.getId(), "rate");
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getId()).isEqualTo(savedNew.getId());
+        assertThat(result.get(1).getId()).isEqualTo(savedOld.getId());
+    }
+
+    @Test
     void testSearchByTitle() {
         Film f1 = createFilm("Крадущийся тигр");
         filmStorage.add(f1);

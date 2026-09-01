@@ -293,7 +293,9 @@ public class FilmDbStorage implements FilmStorage {
     public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
         String orderClause;
         if ("likes".equals(sortBy)) {
-            orderClause = "AVG(mk.\"value\") DESC NULLS LAST, f.id";
+            orderClause = "COUNT(mk.\"value\") DESC NULLS LAST, f.id";
+        } else if ("rate".equals(sortBy)) {
+            orderClause = "AVG(mk.\"value\") DESC NULLS LAST, f.release_date DESC, f.id";
         } else {
             orderClause = "f.release_date ASC, f.id";
         }

@@ -1,7 +1,7 @@
 package ru.yandex.practicum.filmorate.enums;
 
 public enum FeedEventType {
-    MARK,
+    LIKE,
     REVIEW,
     FRIEND
 }

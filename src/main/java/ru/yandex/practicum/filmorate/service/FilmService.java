@@ -77,14 +77,14 @@ public class FilmService {
         userStorage.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
         filmStorage.addMark(filmId, userId, value);
-        feedEventService.addEvent(userId, FeedEventType.MARK, FeedEventOperation.ADD, filmId);
+        feedEventService.addEvent(userId, FeedEventType.LIKE, FeedEventOperation.ADD, filmId);
     }
 
     public void removeMark(Long filmId, Long userId) {
         userStorage.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
         filmStorage.removeMark(filmId, userId);
-        feedEventService.addEvent(userId, FeedEventType.MARK, FeedEventOperation.REMOVE, filmId);
+        feedEventService.addEvent(userId, FeedEventType.LIKE, FeedEventOperation.REMOVE, filmId);
     }
 
     public List<Film> getPopular(int count, Long genreId, Integer year) {
