@@ -16,7 +16,7 @@ Template repository for Filmorate project.
 | `genres` | Справочник жанров (Комедия, Драма, Мультфильм, Триллер, Документальный, Боевик) |
 | `film_genres` | Связь фильмы ↔ жанры (many-to-many) |
 | `friendships` | Дружба пользователей со статусом (UNCONFIRMED / CONFIRMED) |
-| `likes` | Лайки фильмов (many-to-many) |
+| `marks` | Оценки фильмов 1–10 (фильм ↔ пользователь, со значением) |
 
 ### Примеры SQL-запросов
 
@@ -32,13 +32,13 @@ JOIN mpa_ratings mr ON f.mpa_rating_id = mr.id;
 SELECT * FROM users;
 ```
 
-**Топ N наиболее популярных фильмов (по количеству лайков):**
+**Топ N наиболее популярных фильмов (по средней оценке):**
 ```sql
-SELECT f.*, COUNT(l.user_id) AS likes_count
+SELECT f.*, AVG(m."value") AS rating
 FROM films f
-LEFT JOIN likes l ON f.id = l.film_id
+LEFT JOIN marks m ON f.id = m.film_id
 GROUP BY f.id
-ORDER BY likes_count DESC
+ORDER BY rating DESC NULLS LAST
 LIMIT 10;
 ```
 
