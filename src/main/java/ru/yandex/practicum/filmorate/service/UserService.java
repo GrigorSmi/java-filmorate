@@ -5,8 +5,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.enums.FeedEventOperation;
+import ru.yandex.practicum.filmorate.enums.FeedEventType;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
@@ -18,6 +21,7 @@ import java.util.List;
 public class UserService {
     private final UserStorage userStorage;
     private final JdbcTemplate jdbc;
+    private final FeedEventService feedEventService;
 
     private final RowMapper<User> userRowMapper = (rs, rowNum) -> {
         User user = new User();
@@ -29,9 +33,10 @@ public class UserService {
         return user;
     };
 
-    public UserService(@Qualifier("db") UserStorage userStorage, JdbcTemplate jdbc) {
+    public UserService(@Qualifier("db") UserStorage userStorage, JdbcTemplate jdbc, FeedEventService feedEventService) {
         this.userStorage = userStorage;
         this.jdbc = jdbc;
+        this.feedEventService = feedEventService;
     }
 
     public User add(User user) {
@@ -80,6 +85,7 @@ public class UserService {
         jdbc.update("INSERT INTO friendships (user_id, friend_id, status) VALUES (?, ?, ?)",
                 userId, friendId, FriendshipStatus.UNCONFIRMED.name());
         log.info("Пользователь {} отправил запрос на дружбу пользователю {}", userId, friendId);
+        feedEventService.addEvent(userId, FeedEventType.FRIEND, FeedEventOperation.ADD, friendId);
     }
 
     public void removeFriend(Long userId, Long friendId) {
@@ -89,6 +95,13 @@ public class UserService {
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + friendId + " не найден"));
         jdbc.update("DELETE FROM friendships WHERE user_id = ? AND friend_id = ?", userId, friendId);
         log.info("Дружба между {} и {} удалена", userId, friendId);
+        feedEventService.addEvent(userId, FeedEventType.FRIEND, FeedEventOperation.REMOVE, friendId);
+    }
+
+    public void delete(Long id) {
+        userStorage.findById(id)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
+        userStorage.delete(id);
     }
 
     public List<User> getFriends(Long userId) {
@@ -118,4 +131,10 @@ public class UserService {
                 userRowMapper, userId, otherId
         );
     }
+
+    public List<Film> getRecommendations(Long userId) {
+        findById(userId); // Проверяем, что пользователь существует
+        return userStorage.getRecommendations(userId);
+    }
 }
+

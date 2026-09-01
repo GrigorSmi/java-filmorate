@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.exception;
 
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -14,6 +15,13 @@ public class ErrorHandler {
     @ExceptionHandler(ValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleValidation(ValidationException e) {
+        log.warn("Ошибка валидации: {}", e.getMessage());
+        return new ErrorResponse("Ошибка валидации", e.getMessage());
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleConstraintViolation(ConstraintViolationException e) {
         log.warn("Ошибка валидации: {}", e.getMessage());
         return new ErrorResponse("Ошибка валидации", e.getMessage());
     }

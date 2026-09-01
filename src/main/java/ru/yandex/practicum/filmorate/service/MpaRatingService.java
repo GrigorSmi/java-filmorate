@@ -3,15 +3,15 @@ package ru.yandex.practicum.filmorate.service;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.MpaRating;
-import ru.yandex.practicum.filmorate.storage.db.MpaRatingDbStorage;
+import ru.yandex.practicum.filmorate.storage.MpaRatingStorage;
 
 import java.util.List;
 
 @Service
 public class MpaRatingService {
-    private final MpaRatingDbStorage mpaStorage;
+    private final MpaRatingStorage mpaStorage;
 
-    public MpaRatingService(MpaRatingDbStorage mpaStorage) {
+    public MpaRatingService(MpaRatingStorage mpaStorage) {
         this.mpaStorage = mpaStorage;
     }
 

@@ -1,6 +1,5 @@
 package ru.yandex.practicum.filmorate.storage.db;
 
-import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -16,14 +15,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 @JdbcTest
 @AutoConfigureTestDatabase
 @Import(MpaRatingDbStorage.class)
-@RequiredArgsConstructor(onConstructor_ = @Autowired)
 class MpaRatingDbStorageTest {
-    private final MpaRatingDbStorage mpaStorage;
+
+    @Autowired
+    private MpaRatingDbStorage mpaStorage;
 
     @Test
     void testFindAll() {
         List<MpaRating> ratings = mpaStorage.findAll();
-
         assertThat(ratings).hasSize(5);
         assertThat(ratings).extracting(MpaRating::getId).containsExactly(1L, 2L, 3L, 4L, 5L);
     }
@@ -31,7 +30,6 @@ class MpaRatingDbStorageTest {
     @Test
     void testFindAllNames() {
         List<MpaRating> ratings = mpaStorage.findAll();
-
         assertThat(ratings).extracting(MpaRating::getName)
                 .containsExactly("G", "PG", "PG-13", "R", "NC-17");
     }
@@ -39,7 +37,6 @@ class MpaRatingDbStorageTest {
     @Test
     void testFindById() {
         Optional<MpaRating> rating = mpaStorage.findById(3L);
-
         assertThat(rating).isPresent();
         assertThat(rating.get().getId()).isEqualTo(3L);
         assertThat(rating.get().getName()).isEqualTo("PG-13");
@@ -48,7 +45,6 @@ class MpaRatingDbStorageTest {
     @Test
     void testFindByIdNotFound() {
         Optional<MpaRating> rating = mpaStorage.findById(9999L);
-
         assertThat(rating).isEmpty();
     }
 }

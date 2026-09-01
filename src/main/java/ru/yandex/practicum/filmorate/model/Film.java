@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Getter;
 import lombok.Setter;
 import ru.yandex.practicum.filmorate.validation.ReleaseDate;
@@ -46,6 +47,15 @@ public class Film {
         inverseJoinColumns = @JoinColumn(name = "genre_id")
     )
     private Set<Genre> genres = new HashSet<>();
+
+    @ManyToMany
+    @JoinTable(
+        name = "film_directors",
+        joinColumns = @JoinColumn(name = "film_id"),
+        inverseJoinColumns = @JoinColumn(name = "director_id")
+    )
+    @JsonAlias("director")
+    private Set<Director> directors = new HashSet<>();
 
     @ManyToOne
     @JoinColumn(name = "mpa_rating_id")
