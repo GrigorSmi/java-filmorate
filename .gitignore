@@ -44,3 +44,10 @@ build/
 
 *.db
 db/*
+
+### Тестовые отчёты и служебные файлы ###
+.playwright-mcp/
+shareIt.html
+POSTMANresults.txt
+reports/
+tests/

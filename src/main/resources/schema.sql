@@ -40,9 +40,10 @@ CREATE TABLE IF NOT EXISTS friendships (
     CHECK (user_id <> friend_id)
 );
 
-CREATE TABLE IF NOT EXISTS likes (
+CREATE TABLE IF NOT EXISTS marks (
     film_id BIGINT NOT NULL REFERENCES films(id) ON DELETE CASCADE,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    "value" DOUBLE PRECISION NOT NULL CHECK ("value" BETWEEN 1 AND 10),
     PRIMARY KEY (film_id, user_id)
 );
 

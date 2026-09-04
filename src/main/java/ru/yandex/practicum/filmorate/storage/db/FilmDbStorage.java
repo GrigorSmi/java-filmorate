@@ -83,12 +83,12 @@ public class FilmDbStorage implements FilmStorage {
                 }
         );
 
-        Map<Long, Set<Long>> likesByFilm = new HashMap<>();
+        Map<Long, List<Double>> marksByFilm = new HashMap<>();
         jdbc.query(
-                "SELECT film_id, user_id FROM likes WHERE film_id IN (" + inClause + ")",
+                "SELECT film_id, \"value\" FROM marks WHERE film_id IN (" + inClause + ")",
                 (rs, rowNum) -> {
                     long filmId = rs.getLong("film_id");
-                    likesByFilm.computeIfAbsent(filmId, k -> new HashSet<>()).add(rs.getLong("user_id"));
+                    marksByFilm.computeIfAbsent(filmId, k -> new ArrayList<>()).add(rs.getDouble("value"));
                     return null;
                 }
         );
@@ -96,7 +96,10 @@ public class FilmDbStorage implements FilmStorage {
         for (Film film : films) {
             film.setGenres(genresByFilm.getOrDefault(film.getId(), new LinkedHashSet<>()));
             film.setDirectors(directorsByFilm.getOrDefault(film.getId(), new LinkedHashSet<>()));
-            film.setLikes(likesByFilm.getOrDefault(film.getId(), new HashSet<>()));
+            List<Double> values = marksByFilm.get(film.getId());
+            film.setRating(values == null || values.isEmpty()
+                    ? null
+                    : values.stream().mapToDouble(Double::doubleValue).average().orElse(0.0));
         }
     }
 
@@ -221,20 +224,21 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public void clearAll() {
-        jdbc.update("DELETE FROM likes");
+        jdbc.update("DELETE FROM marks");
         jdbc.update("DELETE FROM film_directors");
         jdbc.update("DELETE FROM film_genres");
         jdbc.update("DELETE FROM films");
     }
 
     @Override
-    public void addLike(Long filmId, Long userId) {
-        jdbc.update("MERGE INTO likes (film_id, user_id) KEY (film_id, user_id) VALUES (?, ?)", filmId, userId);
+    public void addMark(Long filmId, Long userId, double value) {
+        jdbc.update("MERGE INTO marks (film_id, user_id, \"value\") KEY (film_id, user_id) VALUES (?, ?, ?)",
+                filmId, userId, value);
     }
 
     @Override
-    public void removeLike(Long filmId, Long userId) {
-        jdbc.update("DELETE FROM likes WHERE film_id = ? AND user_id = ?", filmId, userId);
+    public void removeMark(Long filmId, Long userId) {
+        jdbc.update("DELETE FROM marks WHERE film_id = ? AND user_id = ?", filmId, userId);
     }
 
     @Override
@@ -243,7 +247,7 @@ public class FilmDbStorage implements FilmStorage {
                 "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name AS mpa_name " +
                         "FROM films f " +
                         "JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
-                        "LEFT JOIN likes l ON f.id = l.film_id " +
+                        "LEFT JOIN marks mk ON f.id = mk.film_id " +
                         "LEFT JOIN film_genres fg ON f.id = fg.film_id ");
 
         List<Object> params = new ArrayList<>();
@@ -259,7 +263,7 @@ public class FilmDbStorage implements FilmStorage {
         }
 
         sql.append("GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name ");
-        sql.append("ORDER BY COUNT(DISTINCT l.user_id) DESC, f.id ");
+        sql.append("ORDER BY AVG(mk.\"value\") DESC NULLS LAST, f.id ");
         sql.append("LIMIT ?");
 
         params.add(count);
@@ -275,11 +279,11 @@ public class FilmDbStorage implements FilmStorage {
                 "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name AS mpa_name " +
                         "FROM films f " +
                         "JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
-                        "JOIN likes l1 ON f.id = l1.film_id AND l1.user_id = ? " +
-                        "JOIN likes l2 ON f.id = l2.film_id AND l2.user_id = ? " +
-                        "LEFT JOIN likes l3 ON f.id = l3.film_id " +
+                        "JOIN marks l1 ON f.id = l1.film_id AND l1.user_id = ? " +
+                        "JOIN marks l2 ON f.id = l2.film_id AND l2.user_id = ? " +
+                        "LEFT JOIN marks l3 ON f.id = l3.film_id " +
                         "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name " +
-                        "ORDER BY COUNT(DISTINCT l3.user_id) DESC, f.id",
+                        "ORDER BY AVG(l3.\"value\") DESC NULLS LAST, f.id",
                 filmRowMapper, userId, friendId
         );
         enrichFilms(films);
@@ -289,7 +293,9 @@ public class FilmDbStorage implements FilmStorage {
     public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
         String orderClause;
         if ("likes".equals(sortBy)) {
-            orderClause = "COUNT(l.user_id) DESC, f.id";
+            orderClause = "COUNT(mk.\"value\") DESC NULLS LAST, f.id";
+        } else if ("rate".equals(sortBy)) {
+            orderClause = "AVG(mk.\"value\") DESC NULLS LAST, f.release_date DESC, f.id";
         } else {
             orderClause = "f.release_date ASC, f.id";
         }
@@ -299,7 +305,7 @@ public class FilmDbStorage implements FilmStorage {
                         "FROM films f " +
                         "JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
                         "JOIN film_directors fd ON f.id = fd.film_id " +
-                        "LEFT JOIN likes l ON f.id = l.film_id " +
+                        "LEFT JOIN marks mk ON f.id = mk.film_id " +
                         "WHERE fd.director_id = ? " +
                         "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name " +
                         "ORDER BY " + orderClause,
@@ -324,7 +330,7 @@ public class FilmDbStorage implements FilmStorage {
                 "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name AS mpa_name " +
                         "FROM films f " +
                         "JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
-                        "LEFT JOIN likes l ON f.id = l.film_id ";
+                        "LEFT JOIN marks mk ON f.id = mk.film_id ";
 
         if (searchTitle && searchDirector) {
             sql = base +
@@ -332,14 +338,14 @@ public class FilmDbStorage implements FilmStorage {
                     "LEFT JOIN directors d ON fd.director_id = d.id " +
                     "WHERE LOWER(f.name) LIKE ? OR LOWER(d.name) LIKE ? " +
                     "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name " +
-                    "ORDER BY COUNT(DISTINCT l.user_id) DESC, f.id";
+                    "ORDER BY AVG(mk.\"value\") DESC NULLS LAST, f.id";
             return enrichAndReturn(
                     jdbc.query(sql, filmRowMapper, likePattern, likePattern));
         } else if (searchTitle) {
             sql = base +
                     "WHERE LOWER(f.name) LIKE ? " +
                     "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name " +
-                    "ORDER BY COUNT(DISTINCT l.user_id) DESC, f.id";
+                    "ORDER BY AVG(mk.\"value\") DESC NULLS LAST, f.id";
             return enrichAndReturn(
                     jdbc.query(sql, filmRowMapper, likePattern));
         } else {
@@ -348,7 +354,7 @@ public class FilmDbStorage implements FilmStorage {
                     "JOIN directors d ON fd.director_id = d.id " +
                     "WHERE LOWER(d.name) LIKE ? " +
                     "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name " +
-                    "ORDER BY COUNT(DISTINCT l.user_id) DESC, f.id";
+                    "ORDER BY AVG(mk.\"value\") DESC NULLS LAST, f.id";
             return enrichAndReturn(
                     jdbc.query(sql, filmRowMapper, likePattern));
         }

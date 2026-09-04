@@ -25,7 +25,7 @@ class UserControllerTest {
     @BeforeEach
     void setUp() {
         jdbc.update("DELETE FROM friendships");
-        jdbc.update("DELETE FROM likes");
+        jdbc.update("DELETE FROM marks");
         jdbc.update("DELETE FROM users");
     }
 

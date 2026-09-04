@@ -20,9 +20,9 @@ public interface FilmStorage {
 
     void clearAll();
 
-    void addLike(Long filmId, Long userId);
+    void addMark(Long filmId, Long userId, double value);
 
-    void removeLike(Long filmId, Long userId);
+    void removeMark(Long filmId, Long userId);
 
     List<Film> getPopular(int count, Long genreId, Integer year);
 

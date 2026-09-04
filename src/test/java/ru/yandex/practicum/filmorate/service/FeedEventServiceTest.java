@@ -69,11 +69,11 @@ class FeedEventServiceTest {
     }
 
     @Test
-    void feedEventsForLikes() {
+    void feedEventsForMarks() {
         User user1 = addUser("1");
 
-        filmService.addLike(film.getId(), user.getId());
-        filmService.addLike(film.getId(), user1.getId());
+        filmService.addMark(film.getId(), user.getId(), 10);
+        filmService.addMark(film.getId(), user1.getId(), 10);
 
         List<FeedEvent> userLikes = feedEventService.findByUserId(user.getId());
         assertTrue(userLikes.stream()
@@ -87,8 +87,8 @@ class FeedEventServiceTest {
                         && e.getOperation() == FeedEventOperation.ADD
                         && e.getEntityId().equals(film.getId())));
 
-        filmService.removeLike(film.getId(), user.getId());
-        filmService.removeLike(film.getId(), user1.getId());
+        filmService.removeMark(film.getId(), user.getId());
+        filmService.removeMark(film.getId(), user1.getId());
 
         List<FeedEvent> userRemoves = feedEventService.findByUserId(user.getId());
         assertTrue(userRemoves.stream()
@@ -147,12 +147,12 @@ class FeedEventServiceTest {
 
         Film film1 = addFilm("1");
 
-        filmService.addLike(film.getId(), user.getId());
-        filmService.addLike(film.getId(), user1.getId());
+        filmService.addMark(film.getId(), user.getId(), 10);
+        filmService.addMark(film.getId(), user1.getId(), 10);
 
-        filmService.addLike(film1.getId(), user.getId());
-        filmService.addLike(film1.getId(), user1.getId());
-        filmService.removeLike(film1.getId(), user1.getId());
+        filmService.addMark(film1.getId(), user.getId(), 10);
+        filmService.addMark(film1.getId(), user1.getId(), 10);
+        filmService.removeMark(film1.getId(), user1.getId());
 
         assertEquals(2, likeEvents(user.getId()).size());
         assertEquals(3, likeEvents(user1.getId()).size());

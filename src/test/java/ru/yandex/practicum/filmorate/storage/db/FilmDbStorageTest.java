@@ -31,7 +31,7 @@ class FilmDbStorageTest {
 
     @BeforeEach
     void setUp() {
-        jdbc.update("DELETE FROM likes");
+        jdbc.update("DELETE FROM marks");
         jdbc.update("DELETE FROM film_directors");
         jdbc.update("DELETE FROM film_genres");
         jdbc.update("DELETE FROM films");
@@ -76,7 +76,7 @@ class FilmDbStorageTest {
         assertThat(saved.getMpa()).isNotNull();
         assertThat(saved.getMpa().getName()).isEqualTo("G");
         assertThat(saved.getGenres()).isEmpty();
-        assertThat(saved.getLikes()).isEmpty();
+        assertThat(saved.getRating()).isNull();
     }
 
     @Test
@@ -108,7 +108,7 @@ class FilmDbStorageTest {
         assertThat(found.get().getMpa()).isNotNull();
         assertThat(found.get().getMpa().getName()).isEqualTo("G");
         assertThat(found.get().getGenres()).isEmpty();
-        assertThat(found.get().getLikes()).isEmpty();
+        assertThat(found.get().getRating()).isNull();
     }
 
     @Test
@@ -188,30 +188,30 @@ class FilmDbStorageTest {
     }
 
     @Test
-    void testAddLike() {
+    void testAddMark() {
         Film film = createFilm("Liked");
         Film saved = filmStorage.add(film);
         User user = createUser("user1");
 
-        filmStorage.addLike(saved.getId(), user.getId());
+        filmStorage.addMark(saved.getId(), user.getId(), 10);
 
         Optional<Film> found = filmStorage.findById(saved.getId());
         assertThat(found).isPresent();
-        assertThat(found.get().getLikes()).containsExactly(user.getId());
+        assertThat(found.get().getRating()).isEqualTo(10.0);
     }
 
     @Test
-    void testRemoveLike() {
+    void testRemoveMark() {
         Film film = createFilm("Unliked");
         Film saved = filmStorage.add(film);
         User user = createUser("user2");
 
-        filmStorage.addLike(saved.getId(), user.getId());
-        filmStorage.removeLike(saved.getId(), user.getId());
+        filmStorage.addMark(saved.getId(), user.getId(), 10);
+        filmStorage.removeMark(saved.getId(), user.getId());
 
         Optional<Film> found = filmStorage.findById(saved.getId());
         assertThat(found).isPresent();
-        assertThat(found.get().getLikes()).isEmpty();
+        assertThat(found.get().getRating()).isNull();
     }
 
     @Test
@@ -225,17 +225,61 @@ class FilmDbStorageTest {
         User u2 = createUser("u2");
         User u3 = createUser("u3");
 
-        filmStorage.addLike(saved1.getId(), u1.getId());
-        filmStorage.addLike(saved1.getId(), u2.getId());
-        filmStorage.addLike(saved2.getId(), u3.getId());
+        filmStorage.addMark(saved1.getId(), u1.getId(), 10);
+        filmStorage.addMark(saved1.getId(), u2.getId(), 8);
+        filmStorage.addMark(saved2.getId(), u3.getId(), 3);
 
         List<Film> popular = filmStorage.getPopular(10, null, null);
 
         assertThat(popular).hasSize(2);
         assertThat(popular.get(0).getId()).isEqualTo(saved1.getId());
-        assertThat(popular.get(0).getLikes()).hasSize(2);
+        assertThat(popular.get(0).getRating()).isEqualTo(9.0);
         assertThat(popular.get(1).getId()).isEqualTo(saved2.getId());
-        assertThat(popular.get(1).getLikes()).hasSize(1);
+        assertThat(popular.get(1).getRating()).isEqualTo(3.0);
+    }
+
+    @Test
+    void testGetPopularWithGenreAndYear() {
+        Film film1 = createFilm("Popular");
+        Genre g = new Genre();
+        g.setId(1L);
+        film1.setGenres(new HashSet<>(Set.of(g)));
+        film1.setReleaseDate(LocalDate.of(2010, 5, 10));
+        Film saved1 = filmStorage.add(film1);
+
+        Film film2 = createFilm("Other");
+        film2.setReleaseDate(LocalDate.of(2010, 5, 10));
+        Film saved2 = filmStorage.add(film2);
+
+        User u1 = createUser("u1");
+        filmStorage.addMark(saved1.getId(), u1.getId(), 10);
+        filmStorage.addMark(saved2.getId(), u1.getId(), 1);
+
+        List<Film> popular = filmStorage.getPopular(10, 1L, 2010);
+
+        assertThat(popular).hasSize(1);
+        assertThat(popular.get(0).getId()).isEqualTo(saved1.getId());
+    }
+
+    @Test
+    void testGetPopularSortsByAverageRating() {
+        // значения 1-5 считаются отрицательными, но сортировка всё равно по средней оценке
+        Film film1 = createFilm("F1");
+        Film saved1 = filmStorage.add(film1);
+        Film film2 = createFilm("F2");
+        Film saved2 = filmStorage.add(film2);
+
+        User u1 = createUser("u1");
+        User u2 = createUser("u2");
+        filmStorage.addMark(saved1.getId(), u1.getId(), 10);
+        filmStorage.addMark(saved1.getId(), u2.getId(), 3);
+        filmStorage.addMark(saved2.getId(), u1.getId(), 10);
+
+        List<Film> popular = filmStorage.getPopular(10, null, null);
+
+        assertThat(popular).hasSize(2);
+        assertThat(popular.get(0).getRating()).isEqualTo(10.0);
+        assertThat(popular.get(1).getRating()).isEqualTo(6.5);
     }
 
     @Test
@@ -244,12 +288,53 @@ class FilmDbStorageTest {
             Film film = createFilm("Film" + i);
             Film saved = filmStorage.add(film);
             User user = createUser("u" + i);
-            filmStorage.addLike(saved.getId(), user.getId());
+            filmStorage.addMark(saved.getId(), user.getId(), 10);
         }
 
         List<Film> popular = filmStorage.getPopular(3, null, null);
 
         assertThat(popular).hasSize(3);
+    }
+
+    @Test
+    void testGetCommonFilms() {
+        Film film1 = createFilm("Common1");
+        Film saved1 = filmStorage.add(film1);
+        Film film2 = createFilm("Common2");
+        Film saved2 = filmStorage.add(film2);
+        Film film3 = createFilm("OnlyUser1");
+        Film saved3 = filmStorage.add(film3);
+
+        User u1 = createUser("u1");
+        User u2 = createUser("u2");
+        filmStorage.addMark(saved1.getId(), u1.getId(), 10);
+        filmStorage.addMark(saved1.getId(), u2.getId(), 8);
+        filmStorage.addMark(saved2.getId(), u1.getId(), 7);
+        filmStorage.addMark(saved2.getId(), u2.getId(), 6);
+        filmStorage.addMark(saved3.getId(), u1.getId(), 10);
+
+        List<Film> common = filmStorage.getCommonFilms(u1.getId(), u2.getId());
+
+        assertThat(common).hasSize(2);
+        assertThat(common.get(0).getId()).isEqualTo(saved1.getId());
+        assertThat(common.get(1).getId()).isEqualTo(saved2.getId());
+    }
+
+    @Test
+    void testGetCommonFilmsEmptyWhenNoCommon() {
+        Film film1 = createFilm("OnlyUser1");
+        Film saved1 = filmStorage.add(film1);
+        Film film2 = createFilm("OnlyUser2");
+        Film saved2 = filmStorage.add(film2);
+
+        User u1 = createUser("u1");
+        User u2 = createUser("u2");
+        filmStorage.addMark(saved1.getId(), u1.getId(), 10);
+        filmStorage.addMark(saved2.getId(), u2.getId(), 10);
+
+        List<Film> common = filmStorage.getCommonFilms(u1.getId(), u2.getId());
+
+        assertThat(common).isEmpty();
     }
 
     @Test
@@ -261,12 +346,12 @@ class FilmDbStorageTest {
         Film saved = filmStorage.add(film);
 
         User user = createUser("liker");
-        filmStorage.addLike(saved.getId(), user.getId());
+        filmStorage.addMark(saved.getId(), user.getId(), 10);
 
         Optional<Film> found = filmStorage.findById(saved.getId());
         assertThat(found).isPresent();
         assertThat(found.get().getGenres()).hasSize(1);
-        assertThat(found.get().getLikes()).hasSize(1);
+        assertThat(found.get().getRating()).isNotNull();
     }
 
     @Test
@@ -348,15 +433,41 @@ class FilmDbStorageTest {
 
         User u1 = createUser("u1");
         User u2 = createUser("u2");
-        filmStorage.addLike(saved1.getId(), u1.getId());
-        filmStorage.addLike(saved1.getId(), u2.getId());
-        filmStorage.addLike(saved2.getId(), u1.getId());
+        filmStorage.addMark(saved1.getId(), u1.getId(), 10);
+        filmStorage.addMark(saved1.getId(), u2.getId(), 8);
+        filmStorage.addMark(saved2.getId(), u1.getId(), 3);
 
         List<Film> result = filmStorage.getFilmsByDirector(director.getId(), "likes");
 
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).getLikes()).hasSize(2);
-        assertThat(result.get(1).getLikes()).hasSize(1);
+        assertThat(result.get(0).getId()).isEqualTo(saved1.getId());
+        assertThat(result.get(0).getRating()).isEqualTo(9.0);
+        assertThat(result.get(1).getRating()).isEqualTo(3.0);
+    }
+
+    @Test
+    void testGetFilmsByDirectorSortByRate() {
+        Director director = createDirector("DirectorRate");
+
+        Film filmNew = createFilm("Newer");
+        filmNew.setReleaseDate(LocalDate.of(2020, 1, 1));
+        filmNew.setDirectors(new HashSet<>(Set.of(director)));
+        Film savedNew = filmStorage.add(filmNew);
+
+        Film filmOld = createFilm("Older");
+        filmOld.setReleaseDate(LocalDate.of(2010, 1, 1));
+        filmOld.setDirectors(new HashSet<>(Set.of(director)));
+        Film savedOld = filmStorage.add(filmOld);
+
+        User u1 = createUser("u1");
+        filmStorage.addMark(savedNew.getId(), u1.getId(), 10);
+        filmStorage.addMark(savedOld.getId(), u1.getId(), 10);
+
+        List<Film> result = filmStorage.getFilmsByDirector(director.getId(), "rate");
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getId()).isEqualTo(savedNew.getId());
+        assertThat(result.get(1).getId()).isEqualTo(savedOld.getId());
     }
 
     @Test
@@ -438,14 +549,15 @@ class FilmDbStorageTest {
 
         User u1 = createUser("u1");
         User u2 = createUser("u2");
-        filmStorage.addLike(saved1.getId(), u1.getId());
-        filmStorage.addLike(saved1.getId(), u2.getId());
-        filmStorage.addLike(saved2.getId(), u1.getId());
+        filmStorage.addMark(saved1.getId(), u1.getId(), 10);
+        filmStorage.addMark(saved1.getId(), u2.getId(), 8);
+        filmStorage.addMark(saved2.getId(), u1.getId(), 3);
 
         List<Film> result = filmStorage.search("популярн", "title");
 
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).getLikes()).hasSize(2);
-        assertThat(result.get(1).getLikes()).hasSize(1);
+        assertThat(result.get(0).getId()).isEqualTo(saved1.getId());
+        assertThat(result.get(0).getRating()).isEqualTo(9.0);
+        assertThat(result.get(1).getRating()).isEqualTo(3.0);
     }
 }

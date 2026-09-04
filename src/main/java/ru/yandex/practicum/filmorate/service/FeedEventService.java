@@ -67,7 +67,7 @@ public class FeedEventService {
 
     /**
      * Удаляем события из ленты при удалении сущностей, на которые ссылается entityId:
-     * - LIKE: filmId
+     * - MARK: filmId
      * - FRIEND: userId друга (friendId)
      * При удалении пользователя по userId, события ленты удалятся на уровне БД (ON DELETE CASCADE)
      * Параметры: entityId могут совпасть для разных типов сущностей, необходимо учитывать eventType

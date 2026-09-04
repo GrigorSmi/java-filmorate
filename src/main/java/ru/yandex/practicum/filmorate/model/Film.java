@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 import ru.yandex.practicum.filmorate.validation.ReleaseDate;
@@ -63,5 +64,10 @@ public class Film {
     private MpaRating mpa;
 
     @Transient
-    private Set<Long> likes = new HashSet<>();
+    private Double rating;
+
+    @JsonProperty("rate")
+    public Double getRate() {
+        return rating;
+    }
 }

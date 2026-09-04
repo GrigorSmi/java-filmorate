@@ -36,7 +36,7 @@ class FilmControllerTest {
 
     @BeforeEach
     void setUp() {
-        jdbc.update("DELETE FROM likes");
+        jdbc.update("DELETE FROM marks");
         jdbc.update("DELETE FROM film_directors");
         jdbc.update("DELETE FROM film_genres");
         jdbc.update("DELETE FROM films");
@@ -203,11 +203,11 @@ class FilmControllerTest {
         film3.setName("onlyUser1");
         Film f3 = controller.create(film3);
 
-        controller.addLike(f1.getId(), user1.getId());
-        controller.addLike(f1.getId(), user2.getId());
-        controller.addLike(f2.getId(), user1.getId());
-        controller.addLike(f2.getId(), user2.getId());
-        controller.addLike(f3.getId(), user1.getId());
+        controller.addMark(f1.getId(), user1.getId(), 10d);
+        controller.addMark(f1.getId(), user2.getId(), 10d);
+        controller.addMark(f2.getId(), user1.getId(), 10d);
+        controller.addMark(f2.getId(), user2.getId(), 10d);
+        controller.addMark(f3.getId(), user1.getId(), 10d);
 
         List<Film> common = controller.getCommonFilms(user1.getId(), user2.getId());
 
@@ -229,8 +229,8 @@ class FilmControllerTest {
         film2.setName("onlyUser2");
         Film f2 = controller.create(film2);
 
-        controller.addLike(f1.getId(), user1.getId());
-        controller.addLike(f2.getId(), user2.getId());
+        controller.addMark(f1.getId(), user1.getId(), 10d);
+        controller.addMark(f2.getId(), user2.getId(), 10d);
 
         List<Film> common = controller.getCommonFilms(user1.getId(), user2.getId());
 
@@ -249,5 +249,42 @@ class FilmControllerTest {
 
         assertThrows(NotFoundException.class,
                 () -> controller.getCommonFilms(user1.getId(), 999L));
+    }
+
+    @Test
+    void addLike_shouldAddMarkWithMaxValue() {
+        Film film = createTestFilm();
+        Film created = controller.create(film);
+        User user = userController.create(createTestUser("l1"));
+
+        controller.addLike(created.getId(), user.getId());
+
+        Film result = controller.findById(created.getId());
+        assertEquals(10.0, result.getRating());
+    }
+
+    @Test
+    void addLikeWithValue_shouldAddMarkWithGivenValue() {
+        Film film = createTestFilm();
+        Film created = controller.create(film);
+        User user = userController.create(createTestUser("l2"));
+
+        controller.addLikeWithValue(created.getId(), user.getId(), 5.01);
+
+        Film result = controller.findById(created.getId());
+        assertEquals(5.01, result.getRating());
+    }
+
+    @Test
+    void removeLike_shouldRemoveMark() {
+        Film film = createTestFilm();
+        Film created = controller.create(film);
+        User user = userController.create(createTestUser("l3"));
+
+        controller.addLike(created.getId(), user.getId());
+        controller.removeLike(created.getId(), user.getId());
+
+        Film result = controller.findById(created.getId());
+        assertNull(result.getRating());
     }
 }

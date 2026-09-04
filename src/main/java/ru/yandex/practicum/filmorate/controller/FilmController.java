@@ -61,16 +61,38 @@ public class FilmController {
         filmService.delete(id);
     }
 
+    @PutMapping("/{id}/marks/{userId}")
+    public void addMark(@PathVariable Long id,
+                        @PathVariable Long userId,
+                        @RequestParam Double value) {
+        log.info("Запрос на оценку {} от пользователя {} со значением {}", id, userId, value);
+        filmService.addMark(id, userId, value);
+    }
+
+    @DeleteMapping("/{id}/marks/{userId}")
+    public void removeMark(@PathVariable Long id, @PathVariable Long userId) {
+        log.info("Запрос на удаление оценки фильма {} пользователем {}", id, userId);
+        filmService.removeMark(id, userId);
+    }
+
     @PutMapping("/{id}/like/{userId}")
     public void addLike(@PathVariable Long id, @PathVariable Long userId) {
-        log.info("Запрос на лайк фильма {} от пользователя {}", id, userId);
-        filmService.addLike(id, userId);
+        log.info("Запрос на лайк фильма {} от пользователя {} (совместимость, оценка 10)", id, userId);
+        filmService.addMark(id, userId, 10);
+    }
+
+    @PutMapping("/{id}/like/{userId}/{value}")
+    public void addLikeWithValue(@PathVariable Long id,
+                                 @PathVariable Long userId,
+                                 @PathVariable Double value) {
+        log.info("Запрос на лайк фильма {} от пользователя {} со значением {} (совместимость)", id, userId, value);
+        filmService.addMark(id, userId, value);
     }
 
     @DeleteMapping("/{id}/like/{userId}")
     public void removeLike(@PathVariable Long id, @PathVariable Long userId) {
-        log.info("Запрос на снятие лайка фильма {} пользователем {}", id, userId);
-        filmService.removeLike(id, userId);
+        log.info("Запрос на удаление лайка фильма {} пользователем {} (совместимость)", id, userId);
+        filmService.removeMark(id, userId);
     }
 
     @GetMapping("/popular")

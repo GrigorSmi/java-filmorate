@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 @Qualifier("memory")
 public class InMemoryFilmStorage implements FilmStorage {
     private final Map<Long, Film> films = new HashMap<>();
+    private final Map<Long, Map<Long, Double>> marksByFilm = new HashMap<>();
     private long nextId = 1;
 
     @Override
@@ -58,32 +59,41 @@ public class InMemoryFilmStorage implements FilmStorage {
     @Override
     public void clearAll() {
         films.clear();
+        marksByFilm.clear();
         nextId = 1;
     }
 
     @Override
-    public void addLike(Long filmId, Long userId) {
+    public void addMark(Long filmId, Long userId, double value) {
         Film film = films.get(filmId);
         if (film == null) {
             throw new NotFoundException("Фильм с id=" + filmId + " не найден");
         }
-        if (!film.getLikes().add(userId)) {
-            log.warn("Пользователь {} уже поставил лайк фильму {}", userId, filmId);
-        } else {
-            log.info("Пользователь {} поставил лайк фильму {}", userId, filmId);
-        }
+        Map<Long, Double> marks = marksByFilm.computeIfAbsent(filmId, k -> new HashMap<>());
+        marks.put(userId, value);
+        recalcRating(film);
     }
 
     @Override
-    public void removeLike(Long filmId, Long userId) {
+    public void removeMark(Long filmId, Long userId) {
         Film film = films.get(filmId);
         if (film == null) {
             throw new NotFoundException("Фильм с id=" + filmId + " не найден");
         }
-        if (!film.getLikes().remove(userId)) {
-            log.warn("Лайк пользователя {} у фильма {} не найден", userId, filmId);
+        Map<Long, Double> marks = marksByFilm.get(filmId);
+        if (marks != null) {
+            marks.remove(userId);
+        }
+        recalcRating(film);
+    }
+
+    private void recalcRating(Film film) {
+        Map<Long, Double> marks = marksByFilm.get(film.getId());
+        if (marks == null || marks.isEmpty()) {
+            film.setRating(null);
         } else {
-            log.info("Пользователь {} убрал лайк с фильма {}", userId, filmId);
+            double avg = marks.values().stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+            film.setRating(avg);
         }
     }
 
@@ -92,7 +102,9 @@ public class InMemoryFilmStorage implements FilmStorage {
         return films.values().stream()
                 .filter(film -> genreId == null || (film.getGenres() != null && film.getGenres().stream().anyMatch(g -> g.getId().equals(genreId))))
                 .filter(film -> year == null || (film.getReleaseDate() != null && film.getReleaseDate().getYear() == year))
-                .sorted((a, b) -> Integer.compare(b.getLikes().size(), a.getLikes().size()))
+                .sorted((a, b) -> Double.compare(
+                        b.getRating() == null ? 0.0 : b.getRating(),
+                        a.getRating() == null ? 0.0 : a.getRating()))
                 .limit(count)
                 .toList();
     }
@@ -105,9 +117,13 @@ public class InMemoryFilmStorage implements FilmStorage {
     @Override
     public List<Film> getCommonFilms(Long userId, Long friendId) {
         return films.values().stream()
-                .filter(f -> f.getLikes() != null && f.getLikes().contains(userId) && f.getLikes().contains(friendId))
+                .filter(f -> marksByFilm.containsKey(f.getId())
+                        && marksByFilm.get(f.getId()).containsKey(userId)
+                        && marksByFilm.get(f.getId()).containsKey(friendId))
                 .sorted((a, b) -> {
-                    int cmp = Integer.compare(b.getLikes().size(), a.getLikes().size());
+                    int cmp = Double.compare(
+                            b.getRating() == null ? 0.0 : b.getRating(),
+                            a.getRating() == null ? 0.0 : a.getRating());
                     return cmp != 0 ? cmp : Long.compare(a.getId(), b.getId());
                 })
                 .toList();
@@ -127,7 +143,7 @@ public class InMemoryFilmStorage implements FilmStorage {
                                     .anyMatch(d -> d.getName().toLowerCase().contains(lowerQuery));
                     return matchTitle || matchDirector;
                 })
-                .sorted(Comparator.comparingInt((Film f) -> f.getLikes() != null ? f.getLikes().size() : 0).reversed()
+                .sorted(Comparator.comparingDouble((Film f) -> f.getRating() == null ? 0.0 : f.getRating()).reversed()
                         .thenComparing(Film::getId))
                 .collect(Collectors.toList());
     }

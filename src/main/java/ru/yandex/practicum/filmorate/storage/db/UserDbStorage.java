@@ -116,25 +116,28 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public List<Film> getRecommendations(Long userId) {
-        String sql = "WITH CommonLikes AS (" +
-                "    SELECT l1.user_id AS other_user_id, COUNT(*) AS common_count " +
-                "    FROM likes l1 " +
-                "    JOIN likes l2 ON l1.film_id = l2.film_id " +
-                "    WHERE l2.user_id = ? AND l1.user_id != ? " +
-                "    GROUP BY l1.user_id " +
+        String sql = "WITH Similar AS (" +
+                "    SELECT m1.user_id AS other_user_id, " +
+                "           COUNT(*) AS common_count, " +
+                "           SUM(CASE WHEN ABS(m1.\"value\" - m2.\"value\") <= 2 THEN 1 ELSE 0 END) AS close_count " +
+                "    FROM marks m1 " +
+                "    JOIN marks m2 ON m1.film_id = m2.film_id " +
+                "    WHERE m2.user_id = ? AND m1.user_id != ? " +
+                "    GROUP BY m1.user_id " +
                 "), " +
-                "MaxCount AS (" +
-                "    SELECT MAX(common_count) AS max_count FROM CommonLikes " +
+                "BestUser AS (" +
+                "    SELECT other_user_id FROM Similar " +
+                "    ORDER BY close_count DESC, common_count DESC " +
+                "    LIMIT 1 " +
                 ") " +
                 "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name AS mpa_name " +
                 "FROM films f " +
                 "JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
-                "JOIN likes l ON f.id = l.film_id " +
-                "JOIN CommonLikes cl ON l.user_id = cl.other_user_id " +
-                "JOIN MaxCount mc ON cl.common_count = mc.max_count " +
-                "WHERE f.id NOT IN (SELECT film_id FROM likes WHERE user_id = ?) " +
-                "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name " +
-                "ORDER BY COUNT(l.user_id) DESC, f.id ASC";
+                "JOIN marks mk ON f.id = mk.film_id " +
+                "       AND mk.user_id = (SELECT other_user_id FROM BestUser) " +
+                "WHERE f.id NOT IN (SELECT film_id FROM marks WHERE user_id = ?) " +
+                "AND mk.\"value\" >= 3 " +
+                "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name";
 
         List<Film> films = jdbc.query(sql, filmRowMapper, userId, userId, userId);
 
@@ -172,12 +175,12 @@ public class UserDbStorage implements UserStorage {
                     }
             );
 
-            Map<Long, Set<Long>> likesByFilm = new HashMap<>();
+            Map<Long, List<Double>> marksByFilm = new HashMap<>();
             jdbc.query(
-                    "SELECT film_id, user_id FROM likes WHERE film_id IN (" + inClause + ")",
+                    "SELECT film_id, \"value\" FROM marks WHERE film_id IN (" + inClause + ")",
                     (rs, rowNum) -> {
                         long fId = rs.getLong("film_id");
-                        likesByFilm.computeIfAbsent(fId, k -> new HashSet<>()).add(rs.getLong("user_id"));
+                        marksByFilm.computeIfAbsent(fId, k -> new ArrayList<>()).add(rs.getDouble("value"));
                         return null;
                     }
             );
@@ -185,8 +188,14 @@ public class UserDbStorage implements UserStorage {
             for (Film film : films) {
                 film.setGenres(genresByFilm.getOrDefault(film.getId(), new LinkedHashSet<>()));
                 film.setDirectors(directorsByFilm.getOrDefault(film.getId(), new LinkedHashSet<>()));
-                film.setLikes(likesByFilm.getOrDefault(film.getId(), new HashSet<>()));
+                List<Double> values = marksByFilm.get(film.getId());
+                film.setRating(values == null || values.isEmpty()
+                        ? null
+                        : values.stream().mapToDouble(Double::doubleValue).average().orElse(0.0));
             }
+            films.sort(Comparator.comparing((Film f) -> f.getRating() == null ? 0.0 : f.getRating())
+                    .reversed()
+                    .thenComparing(Film::getId));
         }
         return films;
     }
