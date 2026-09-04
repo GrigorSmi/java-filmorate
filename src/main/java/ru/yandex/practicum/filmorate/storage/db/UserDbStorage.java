@@ -136,7 +136,7 @@ public class UserDbStorage implements UserStorage {
                 "JOIN marks mk ON f.id = mk.film_id " +
                 "       AND mk.user_id = (SELECT other_user_id FROM BestUser) " +
                 "WHERE f.id NOT IN (SELECT film_id FROM marks WHERE user_id = ?) " +
-                "AND mk.\"value\" >= 6 " +
+                "AND mk.\"value\" >= 3 " +
                 "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_rating_id, m.name";
 
         List<Film> films = jdbc.query(sql, filmRowMapper, userId, userId, userId);
